@@ -4,6 +4,15 @@ The FreeDOS Boot Disks repository contains bootable FreeDOS diskette images and 
 
 This project also contains various utility scripts written for MacOS (OSX) in bash. Details on those are provided below.
 
+# Plans
+  
+  * Fix all links in this readme that have empty links
+  * Make a script to extract / replace boot sectors
+  * Make a script to change volume labels in a boot sector
+  * Make a script to create empty image, copy boot sector in place, copy freedos files in place
+  * Check in sample
+  * Generate the dos images
+
 # Demo
 
 Fabian Hemmer hosts an excellent v86 Demo that demonstrates a number of OS installations such as versions of Windows, different Linux installations, and various DOS versions [here]().
@@ -151,7 +160,7 @@ When someone dual-boots a machine, there can either be two (or more) physical ha
 
 When the computer boots, or a new drive is attached to the computer, partitions are mapped to [logical drives](https://en.wikipedia.org/wiki/Logical_disk), such as a "C:" or "D:" drive on a Windows Machine. On linux/MacOS systems the drive's partitions will be mapped to filesystem abstractions such as /dev/disk1s1 and dev/disk1s2. For linux/MacOS terminal fans, the logical volume versions of the the partitions will be mounted under the /Volumes directory, for example: /Volumes/MYDRIVE.
 
-When an external drive, cdrom, usb stick, sd card, is plugged into the machine, it will popup in Finder (on Macos) or Explorer (on Windows) with the volume labels such as MYDRIVE mentioned above. Under the covers on a linux or MacOS system, the OS is automatically doing two operations to make the volume available: attaching and mounting the drive. 
+When an external drive, cdrom, usb stick, or sd card is plugged into the machine, the drive will popup in Finder (on Macos) or Explorer (on Windows) with the volume labels such as MYDRIVE mentioned above. Under the covers on a linux or MacOS system, the OS is automatically doing two operations to make the volume available: attaching and mounting the drive. 
 
 When a drive is attached but not mounted, it can be fully erased, reformated, or byte-for-byte copied to another disk or an image file using the unix [dd](http://man7.org/linux/man-pages/man1/dd.1.html) command. The dd program differs from [cp](http://man7.org/linux/man-pages/man1/cp.1.html) in that it copies every single byte from the disk, meaning it will copy every sector from the disk, including boot sectors, partition information, FAT information, empty space, every file and folder in their current state (including their exact fragmentation across different sectors on disk, and even 'deleted' file data on the disk where the file has merely been removed from the FAT but the bytes of the file are not securely erased by writing zeros or random data over the file's contents on disk). The dd command is often used when attempting to recover a faulty or failing disk that's mounting incorrectly or has a corrupted FAT. 
 
@@ -203,7 +212,7 @@ There are a number of other useful commands for image creation, partitioning, an
  * [Disk Utility](https://en.wikipedia.org/wiki/Disk_Utility) and the terminal version [diskutil](https://ss64.com/osx/diskutil.html)
 
 
-This is all my very high-level novice understanding of how MBRs, VBRs, boot sectors, partitions, and file system formats work. There are a number of resources listed above that go into much greater detail, with much greater authority than I possess. In particular, be sure to check out the [MS Dos 5.0 Boot Sector Reference](https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm) with extremely detailed information about the byte-level breakdown of various boot sector formats. 
+This is all my very high-level novice understanding of how MBRs, VBRs, boot sectors, partitions, and file system formats work. There are a number of resources listed above that go into much greater detail, with much greater authority than I possess. In particular, be sure to check out [Boot Records Revealed](https://thestarman.pcministry.com/asm/mbr/index.html) with extremely detailed information about the byte-level breakdown of various boot sector formats. 
 
 Note that there's more trivia and gotchas document inside the script files contained within this project.
 
@@ -214,7 +223,7 @@ These images were created while working on a [book](http://www.happyacro.com) ab
 
 # Credit
 
- * Fabian Hemmer's [v86](https://github.com/copy/v86) and his original [FreeDOS diskette image]((https://github.com/copy/images/blob/master/freedos722.img) that I used to seed this project's images. 
+ * Fabian Hemmer's [v86](https://github.com/copy/v86) and his original [FreeDOS diskette image](https://github.com/copy/images/blob/master/freedos722.img) that I used to seed this project's images. 
  * Thanks to [David Anderson](https://apple.stackexchange.com/users/107222/david-anderson) for helping me understand the difference between MBR and VBR, and providing example code to extract the boot sector from one image and stick it into another in [this Stack Overflow thread](https://apple.stackexchange.com/questions/338718/creating-bootable-freedos-dos-floppy-diskette-img-file-for-v86-on-osx).
  * [MS Dos 5.0 Boot Sector Reference](https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm)
  * [FreeDOS](http://www.freedos.org/)
