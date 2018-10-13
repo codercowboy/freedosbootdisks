@@ -1,8 +1,8 @@
 # FreeDOS Boot Disks
 
-The FreeDOS Boot Disks repository contains bootable FreeDOS diskette images and [boot sectors](https://en.wikipedia.org/wiki/Boot_sector) from those diskettes. The diskette images can be used to boot a simple DOS shell in a virtual machine such as VirtualBox or QEMU, or in a browser with Fabian Hemmer's [v86 x86 emulator](https://github.com/copy/v86). 
+The FreeDOS Boot Disks repository contains bootable [FreeDOS](http://www.freedos.org/) diskette images and [boot sectors](https://en.wikipedia.org/wiki/Boot_sector) from those diskettes. The diskette images can be used to boot a simple DOS shell in a virtual machine such as [VirtualBox](https://www.virtualbox.org/) or [QEMU](https://www.qemu.org/), or in a browser with Fabian Hemmer's [v86 x86 emulator](https://github.com/copy/v86). 
 
-This project also contains various utility scripts written for MacOS (OSX) in bash. Details on those are provided below.
+This project also contains various utility scripts written for MacOS in bash. Details on those are provided below.
 
 # Plans
   
@@ -55,14 +55,14 @@ It took a while for me to figure out how to run just his FreeDOS demo image loca
     	"use strict";
     
     	window.onload = function() {
-    	    	var emulator = window.emulator = new v86Starter({
-    	        memory_size: 32 * 1024 * 1024,
-    	        vga_memory_size: 2 * 1024 * 1024,
-    	        screen_container: document.getElementById("screen_container"),
-    	        bios: { url: "seabios.bin", },
-    	        vga_bios: { url: "vgabios.bin", },
-    	        fda: { "url": "myfloppy.img", },
-    	        autostart: true,
+	    	var emulator = window.emulator = new v86Starter({
+	        	memory_size: 32 * 1024 * 1024,
+	        	vga_memory_size: 2 * 1024 * 1024,
+	        	screen_container: document.getElementById("screen_container"),
+	        	bios: { url: "seabios.bin", },
+	        	vga_bios: { url: "vgabios.bin", },
+	        	fda: { "url": "myfloppy.img", },
+	        	autostart: true,
     	    });
     	}
     </script>
@@ -108,10 +108,12 @@ I'm not a vintage hardware guru, so I would not be surprised if the images I've 
 
 Boot process resources: 
 
- * [Creating A Minimal Boot Sector For v86](https://blog.benjdoherty.com/2017/08/07/Writing-a-minimal-boot-sector-for-the-v86-emulator/)
- * [Overview of MBR boot process](https://neosmart.net/wiki/mbr-boot-process/)
+ * [Boot Records Reference - VERY good.](https://thestarman.pcministry.com/asm/mbr/index.html)
  * [MBR and VBR Specifics](https://superuser.com/questions/1149657/mbr-and-vbr-specifics)
- * [Boot Records Revealed](https://thestarman.pcministry.com/asm/mbr/index.html)
+ * [Overview of MBR boot process](https://neosmart.net/wiki/mbr-boot-process/)  
+ * [MBR Fix Guide for Various Windows Versions](https://neosmart.net/wiki/fix-mbr/)
+ * [More MBR Tools](https://thestarman.pcministry.com/asm/mbr/BootToolsRefs.htm)
+ * [Boot Sector Tools for Windows](https://www.raymond.cc/blog/5-free-tools-to-backup-and-restore-master-boot-record-mbr/)
  
  Open-source / Free DOS distributions:
 
@@ -131,7 +133,7 @@ Tools:
 
 Javascript x86 Emulation:
 
-* [js-dos](https://js-dos.com/)
+* [js-dos](https://js-dos.com/) - x86 javascript emulator tailored for converting and running dos games in browser.
 * [em-dosbox](https://github.com/dreamlayers/em-dosbox)
 * [v86](https://github.com/copy/v86)
 * [asm.js](http://asmjs.org/)
@@ -143,7 +145,7 @@ Further Resources:
 * [v86 image creation tips for QEMU](https://github.com/copy/v86/issues/128)
 * [FreeDOS on QEMU Installation Guide](http://how-to.wikia.com/wiki/How_to_install_FreeDOS_in_QEMU)
 * [Booting QEMU from a Floppy Image](https://stackoverflow.com/questions/19961095/os-development-booting-from-floppy-drive-using-qemu)
-
+* [Creating A Minimal Boot Sector For v86](https://blog.benjdoherty.com/2017/08/07/Writing-a-minimal-boot-sector-for-the-v86-emulator/)
 * [archive.org's free dos game library](https://archive.org/details/softwarelibrary_msdos_games?) - powered by em-dosbox
  
 # Trivia
