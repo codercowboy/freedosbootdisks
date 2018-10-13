@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#TODO: put license, desc, email, warning about osx here
+
 #DEBUG_EDDOSBOOT="true"
 
 print_usage() {
@@ -74,6 +76,34 @@ debug_log() {
 
 SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
 
+# reverses a hex string such as "0x4241" to "0x4142"
+# arg 1: string to reverse
+# returns: reversed string
+reverse_hex_order() {
+	debug_log "reverse_hex_order input: ${1}"
+	# input is something like "0x434241", strip the "0x" from front
+	INPUT=`echo -n "${1}" | sed 's/0x//'`	
+	#debug_log "reverse_hex_order input with '0x' stripped from front: ${INPUT}"
+	# inptu is now 434241
+	# put a space between each pair so we have 43 42 41
+	INPUT=`echo -n "${INPUT}" | sed 's/\(..\)/\1 /g'`
+	#debug_log "reverse_hex_order input with space between each pair: ${INPUT}"
+	# input is now something like 43 42 41, put them together in reverse order
+	OUTPUT=""
+	for PAIR in ${INPUT}; do
+		#debug_log "reverse_hex_order current pair: '${PAIR}'"
+		PAIR=`echo -n "${PAIR}" | sed 's/ //g'` #remove spaces from end of pair
+		if [ ! -z "${PAIR}" ]; then #only prepend non-empty pairs
+			OUTPUT="${PAIR}${OUTPUT}"
+		fi
+	done
+	# now output is something like 434241, add "0x before it"
+	OUTPUT=`echo -n "0x${OUTPUT}"`
+	# now output is 0x434241
+	debug_log "reverse_hex_order result: ${OUTPUT}"
+	echo -n "${OUTPUT}"
+}
+
 # extracts bytes from file from specified offset in a hex string format
 # arg 1: byte offset to start reading from in decimal ie "123"
 # arg 2: count of bytes to read
@@ -81,7 +111,14 @@ SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
 # returns: bytes in hex format ie "0xABCD"
 extract_bytes() {
 	debug_log "extract_bytes offset: ${1}, byte count: ${2}, file: ${3}"
-	echo "0xAA"
+	# from: https://unix.stackexchange.com/questions/155085/fetching-individual-bytes-from-a-binary-file-into-a-variable-with-bash
+	# and: https://stackoverflow.com/questions/6292645/convert-binary-data-to-hex-in-shell-script
+	OUTPUT="0x`dd if=${3} count=${2} bs=1 skip=${1} conv=notrunc | hexdump -e '"%x"'`" 
+	# extracted bytes are backwards hex like 434241 when we want 414243
+	OUTPUT=`reverse_hex_order "${OUTPUT}"`
+	# extracted bytes are now 0x414243
+	debug_log "extract_bytes extracted: ${OUTPUT}"
+	echo -n "${OUTPUT}"
 }
 
 # replace bytes to file at specified offset
@@ -92,14 +129,6 @@ extract_bytes() {
 replace_bytes() {
 	debug_log "replace_bytes offset: ${1}, byte count: ${2}, bytes to write: ${3}, file: ${4}"
 	echo "Not written yet"
-}
-
-# for some reason the boot sector has bytes backwards, ie instead of 0xFD0A we'd have 0x0AFD
-# arg 1: hex string to convert ie "0xCDAB"
-# returns hex string ie "0xABCD"
-fix_hex_order() {
-	debug_log "fix_hex_order input: ${1}"
-	echo "0xAA"
 }
 
 # converts hex string to a decimal number
@@ -123,7 +152,21 @@ convert_number_to_hex() {
 # returns: ascii string such as "Jason"
 convert_hex_to_ascii_string() {
 	debug_log "convert_hex_to_ascii_string input: ${1}"
-	echo "blah"
+	# from: https://stackoverflow.com/questions/13160309/conversion-hex-string-into-ascii-in-bash-command-line
+	# input is like 0x424141
+	# strip 0x off front:
+	INPUT=`echo -n "${1}" | sed 's/0x//'`
+	debug_log "convert_hex_to_ascii_string input with '0x' stripped from front: ${INPUT}"
+	# now input is 424141
+	# echo needs a format of \x41\x42 with "\x" between each hex pair to print hex as ascii
+	# put the "\x" in the string
+	INPUT=`echo -n "${INPUT}" | sed 's/\(..\)/\\\\x\1/g'`
+	debug_log "convert_hex_to_ascii_string input with '\x' between each pair: ${INPUT}"
+	# now input is \x42\x41\x41
+	RESULT=`echo -n -e "${INPUT}"`
+	debug_log "convert_hex_to_ascii_string result: ${RESULT}"
+	# now result is BAA
+	echo -n "${RESULT}"
 }
 
 # converts ascii string to a hex string
@@ -143,8 +186,8 @@ convert_ascii_string_to_hex() {
 extract_number_from_file() {
 	debug_log "extract_number_from_file offset: ${1}, bytes to read: ${2}, file: ${3}"
 	HEX_BYTES=$(extract_bytes ${1} ${2} "${3}")
-	FIXED_HEX_BYTES=$(fix_hex_order ${HEX_BYTES})
 	NUMBER=$(convert_hex_to_number ${FIXED_HEX_BYTES})
+	debug_log "extract_number_from_file result: ${NUMBER}"
 	return ${NUMBER}
 }
 
@@ -156,11 +199,10 @@ extract_number_from_file() {
 extract_string_from_file() {
 	debug_log "extract_string_from_file offset: ${1}, bytes to read: ${2}, file: ${3}"
 	HEX_BYTES=$(extract_bytes ${1} ${2} "${3}")
-	FIXED_HEX_BYTES=$(fix_hex_order ${HEX_BYTES})
-	ASCII_STRING=$(convert_hex_to_ascii_string ${FIXED_HEX_BYTES})
-	echo "${ASCII_STRING}"
+	ASCII_STRING=$(convert_hex_to_ascii_string ${HEX_BYTES})
+	debug_log "extract_string_from_file result: ${ASCII_STRING}"
+	echo -n "${ASCII_STRING}"
 }
-
 
 # replaces the given string in a file
 # arg 1: byte offset to start writing to in decimal ie "123"
@@ -171,7 +213,7 @@ replace_number_in_file() {
 	debug_log "replace_number_in_file offset: ${1}, bytes to write: ${2}, number to write: ${3}, file: ${4}"
 	#TODO: zero out the bytes first
 	HEX_BYTES=$(convert_number_to_hex "${3}")
-	FIXED_HEX_BYTES=$(fix_hex_order ${HEX_BYTES})
+	FIXED_HEX_BYTES=$(reverse_hex_order ${HEX_BYTES})
 	replace_bytes ${1} ${2} ${FIXED_HEX_BYTES} "${FILE}"
 }
 
@@ -185,7 +227,7 @@ replace_string_in_file() {
 	debug_log "replace_string_in_file offset: ${1}, bytes to write: ${2}, string to write: ${3}, file: ${4}"
 	HEX_BYTES=$(convert_ascii_string_to_hex "${3}")
 	#TODO: pad zeros to fill out bytes to write size buffer
-	FIXED_HEX_BYTES=$(fix_hex_order ${HEX_BYTES})
+	FIXED_HEX_BYTES=$(reverse_hex_order ${HEX_BYTES})
 	replace_bytes ${1} ${2} ${FIXED_HEX_BYTES} "${FILE}"
 }
 
@@ -197,6 +239,20 @@ fi
 debug_log "SCRIPT_HOME: ${SCRIPT_HOME}"
 debug_log "Arguments: ${@}"
 
+# verifies test results
+# arg 1: test name
+# arg 2: expected result
+# arg 3: actual result
+# returns: nothing
+verify_test() {
+	if [ ! "${2}" = "${3}" ]; then
+		echo "TEST FAILURE: ${1}, expected: '${2}', actual: '${3}'"
+		exit 1
+	else
+		echo "Test SUCCESS: ${1}"
+	fi 
+}
+
 if [ "TEST" = "${1}" ]; then
 	TEST_FILE="${SCRIPT_HOME}/test.tmp"
 	debug_log "TEST_FILE: ${TEST_FILE}"
@@ -206,120 +262,82 @@ if [ "TEST" = "${1}" ]; then
 	echo "ABCD" > "${TEST_FILE}"
 	
 	RESULT=$(extract_string_from_file 0 4 "${TEST_FILE}")
-	if [ ! "ABCD" = "${RESULT}" ]; then
-		echo "Test 1.A failed, should be ABCD but was: ${RESULT}"
-		exit 1
-	fi
+	verify_test "Test 1.a" "ABCD" "${RESULT}"
 
-	RESULT=`extract_string_from_file 1 2 "${TEST_FILE}"`
-	if [ ! "BC" = "${RESULT}" ]; then
-		echo "Test 1.B failed, should be BC but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(extract_string_from_file 1 2 "${TEST_FILE}")
+	verify_test "Test 1.b" "BC" "${RESULT}"
 
-	RESULT=`extract_string_from_file 3 1 "${TEST_FILE}"`
-	if [ ! "D" = "${RESULT}" ]; then
-		echo "Test 1.C failed, should be D but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(extract_string_from_file 3 1 "${TEST_FILE}")
+	echo "hello"
+	verify_test "Test 1.c" "D" "${RESULT}"
 
-	RESULT=`fix_hex_order "0x00ABCD03"`
-	if [ ! "0x03CDAB00" = "${RESULT}" ]; then
-		echo "Test 2.a failed, should be 0x03CDAB00 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(reverse_hex_order "0x00ABCD03")
+	verify_test "Test 2.a" "0x03CDAB00" "${RESULT}"
 
-	RESULT=`fix_hex_order "0x00AB"`
-	if [ ! "0xAB00" = "${RESULT}" ]; then
-		echo "Test 2.b failed, should be 0xAB00 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(reverse_hex_order "0x00AB")
+	verify_test "Test 2.b" "0xAB00" "${RESULT}"
 
-	RESULT=`fix_hex_order "0xAB"`
-	if [ ! "0xAB" = "${RESULT}" ]; then
-		echo "Test 2.c failed, should be 0xAB but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(reverse_hex_order "0xAB")
+	verify_test "Test 2.c" "0xAB" "${RESULT}"
 
-	RESULT=`convert_hex_to_number "0x00"`
-	if [ ! 0 -eq ${RESULT} ]; then
-		echo "Test 3.a failed, should be 0 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(convert_hex_to_number "0x00")
+	verify_test "Test 3.a" "0" "${RESULT}"	
 
-	RESULT=`convert_hex_to_number "0x01"`
-	if [ ! 1 -eq ${RESULT} ]; then
-		echo "Test 3.b failed, should be 1 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(convert_hex_to_number "0x01")
+	verify_test "Test 3.b" "1" "${RESULT}"
 
-	RESULT=`convert_hex_to_number "0x14"`
-	if [ ! 19 -eq ${RESULT} ]; then
-		echo "Test 3.c failed, should be 19 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(convert_hex_to_number "0x14")
+	verify_test "Test 3.c" "19" "${RESULT}"
 
-	RESULT=`convert_hex_to_number "0x0F"`
-	if [ ! 15 -eq ${RESULT} ]; then
-		echo "Test 3.d failed, should be 15 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(convert_hex_to_number "0x0F")
+	verify_test "Test 3.d" "15" "${RESULT}"
+	
+	RESULT=$(convert_hex_to_number "0x0A")
+	verify_test "Test 3.e" "10" "${RESULT}"
 
-	RESULT=`convert_hex_to_number "0x0A"`
-	if [ ! 10 -eq ${RESULT} ]; then
-		echo "Test 3.e failed, should be 10 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(convert_hex_to_number "0x0001")
+	verify_test "Test 3.f" "1" "${RESULT}"
 
-	RESULT=`convert_hex_to_number "0x0001"`
-	if [ ! 1 -eq ${RESULT} ]; then
-		echo "Test 3.f failed, should be 1 but was: ${RESULT}"
-		exit 1
-	fi
+	RESULT=$(convert_hex_to_number "0xFF00FF")
+	verify_test "Test 3.g" "1" "${RESULT}"
 
-	RESULT=`convert_hex_to_number "0xFF00FF"`
-	if [ ! 1 -eq ${RESULT} ]; then
-		echo "Test 3.g failed, should be 1 but was: ${RESULT}"
-		exit 1
-	fi
-
-	RESULT=`convert_hex_to_ascii_string "0x0000FF"`
+	RESULT=$(convert_hex_to_ascii_string "0x0000FF")
 	if [ ! "Jason" = "${RESULT}" ]; then
 		echo "Test 4.a failed, should be 'Jason' but was: ${RESULT}"
 		exit 1
 	fi
 
-	RESULT=`convert_hex_to_ascii_string "0x0000FF000"` # zero padding at end should be trimmed
+	RESULT=$(convert_hex_to_ascii_string "0x0000FF000") # zero padding at end should be trimmed
 	if [ ! "Jason" = "${RESULT}" ]; then
 		echo "Test 4.b failed, should be 'Jason' but was: ${RESULT}"
 		exit 1
 	fi
 
-	RESULT=`convert_number_to_hex 0`
+	RESULT=$(convert_number_to_hex 0)
 	if [ ! "0x00" = "${RESULT}" ]; then
 		echo "Test 5.a failed, should be '0x00' but was: ${RESULT}"
 		exit 1
 	fi
 
-	RESULT=`convert_number_to_hex 1`
+	RESULT=$(convert_number_to_hex 1)
 	if [ ! "0x01" = "${RESULT}" ]; then
 		echo "Test 5.b failed, should be '0x01' but was: ${RESULT}"
 		exit 1
 	fi
 
-	RESULT=`convert_number_to_hex 15`
+	RESULT=$(convert_number_to_hex 15)
 	if [ ! "0x0F" = "${RESULT}" ]; then
 		echo "Test 5.c failed, should be '0x0F' but was: ${RESULT}"
 		exit 1
 	fi
 
-	RESULT=`convert_number_to_hex 255`
+	RESULT=$(convert_number_to_hex 255)
 	if [ ! "0xFF" = "${RESULT}" ]; then
 		echo "Test 5.d failed, should be '0xFF' but was: ${RESULT}"
 		exit 1
 	fi
 
-	RESULT=`convert_number_to_hex 123456789`
+	RESULT=$(convert_number_to_hex 123456789)
 	if [ ! "0xFF" = "${RESULT}" ]; then
 		echo "Test 5.e failed, should be '0xFF' but was: ${RESULT}"
 		exit 1
