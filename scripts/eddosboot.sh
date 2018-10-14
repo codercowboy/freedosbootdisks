@@ -114,6 +114,7 @@ extract_bytes() {
 	# from: https://unix.stackexchange.com/questions/155085/fetching-individual-bytes-from-a-binary-file-into-a-variable-with-bash
 	# and: https://stackoverflow.com/questions/6292645/convert-binary-data-to-hex-in-shell-script
 	OUTPUT="0x`dd if=${3} count=${2} bs=1 skip=${1} conv=notrunc | hexdump -e '"%X"'`" 
+	OUTPUT=$(fix_hex_padding "${OUTPUT}")
 	# extracted bytes are backwards hex like 434241 when we want 414243
 	OUTPUT=`reverse_hex_order "${OUTPUT}"`
 	# extracted bytes are now 0x414243
@@ -162,8 +163,8 @@ convert_number_to_hex() {
 	# input example: 12
 	RESULT=`printf "%X" "${1}"`
 	# result is now "C", we want to zero pad this to be "0C" if there's an odd number of digits
-	# from: https://stackoverflow.com/questions/17368067/length-of-string-in-bash
-	# and: http://tldp.org/LDP/abs/html/ops.html
+	RESULT=$(fix_hex_padding "0x${RESULT}")
+	RESULT=`echo -n "${RESULT}" | sed 's/0x//'` # strip 0x off front:
 	debug_log "convert_number_to_hex initial hex: ${RESULT}"
 	REMAINDER=`expr ${#RESULT} % 2`
 	debug_log "convert_number_to_hex remainder: ${REMAINDER}"
@@ -177,6 +178,24 @@ convert_number_to_hex() {
 	echo -n "${RESULT}"
 }
 
+# adds an extra "0" to the beginning of a hex string that has an odd number of characters in it, ie "0xF" -> "0x0F"
+# arg 1: hex string to pad, ie "0xF"
+# returns: padded hex string, ie "0x0F"
+fix_hex_padding() {
+	debug_log "fix_hex_padding fixing input: ${1}"
+	RESULT=`echo -n "${1}" | sed 's/0x//'` # strip 0x off front:
+	# from: https://stackoverflow.com/questions/17368067/length-of-string-in-bash
+	# and: http://tldp.org/LDP/abs/html/ops.html
+	REMAINDER=`expr ${#RESULT} % 2`
+	if [ ${REMAINDER} -eq 1 -o "0" = "${RESULT}" ]; then
+		# odd number of hex digits, add a zero at front
+		RESULT="0${RESULT}"
+	fi
+	RESULT="0x${RESULT}"
+	debug_log "fix_hex_padding result: ${RESULT}"
+	echo -n "${RESULT}"
+}
+
 # converts hex string to an ascii string
 # arg 1: hex string to convert ie "0xABCD"
 # returns: ascii string such as "Jason"
@@ -184,9 +203,7 @@ convert_hex_to_ascii_string() {
 	debug_log "convert_hex_to_ascii_string input: ${1}"
 	# from: https://stackoverflow.com/questions/13160309/conversion-hex-string-into-ascii-in-bash-command-line
 	# input is like 0x424141
-	# strip 0x off front:
-	INPUT=`echo -n "${1}" | sed 's/0x//'`
-	debug_log "convert_hex_to_ascii_string input with '0x' stripped from front: ${INPUT}"
+	INPUT=`echo -n "${1}" | sed 's/0x//'` # strip 0x off front:
 	# now input is 424141
 	# echo needs a format of \x41\x42 with "\x" between each hex pair to print hex as ascii
 	# put the "\x" in the string
@@ -219,7 +236,7 @@ convert_ascii_string_to_hex() {
 extract_number_from_file() {
 	debug_log "extract_number_from_file offset: ${1}, bytes to read: ${2}, file: ${3}"
 	HEX_BYTES=$(extract_bytes ${1} ${2} "${3}")
-	NUMBER=$(convert_hex_to_number ${FIXED_HEX_BYTES})
+	NUMBER=$(convert_hex_to_number ${HEX_BYTES})
 	debug_log "extract_number_from_file result: ${NUMBER}"
 	echo -n "${NUMBER}"
 }
@@ -245,7 +262,7 @@ extract_string_from_file() {
 replace_number_in_file() {
 	debug_log "replace_number_in_file offset: ${1}, number to write: ${2}, file: ${3}"
 	#TODO: zero out the bytes first
-	HEX_BYTES=$(convert_number_to_hex "${3}")
+	HEX_BYTES=$(convert_number_to_hex "${2}")
 	replace_bytes ${1} "${HEX_BYTES}" "${3}"
 }
 
@@ -397,8 +414,75 @@ if [ "TEST" = "${1}" ]; then
 	RESULT=`cat ${TEST_FILE}`
 	verify_test "Test 8.d" "ABCDEFGHIJK" "${RESULT}"
 
-	//TODO: extract_number_from_file
-	//TODO: replace_number_in_file
+	# write 15 to file
+	rm "${TEST_FILE}"
+	HEX_NUMBER=$(convert_number_to_hex 15)
+	replace_bytes 0 "${HEX_NUMBER}" "${TEST_FILE}"
+	RESULT=$(extract_number_from_file 0 1 "${TEST_FILE}")
+	verify_test "Test 9.a" "15" "${RESULT}"
+
+	#write 1 to file
+	rm "${TEST_FILE}"
+	HEX_NUMBER=$(convert_number_to_hex 1)
+	replace_bytes 0 "${HEX_NUMBER}" "${TEST_FILE}"
+	RESULT=$(extract_number_from_file 0 1 "${TEST_FILE}")
+	verify_test "Test 9.b" "1" "${RESULT}"
+
+	#write 0 to file
+	rm "${TEST_FILE}"
+	HEX_NUMBER=$(convert_number_to_hex 0)
+	replace_bytes 0 "${HEX_NUMBER}" "${TEST_FILE}"
+	RESULT=$(extract_number_from_file 0 1 "${TEST_FILE}")
+	verify_test "Test 9.c" "0" "${RESULT}"
+
+	# write 255 to file twice (which will read out as 65535)
+	rm "${TEST_FILE}"
+	HEX_NUMBER=$(convert_number_to_hex 255)
+	replace_bytes 0 "${HEX_NUMBER}" "${TEST_FILE}"
+	replace_bytes 1 "${HEX_NUMBER}" "${TEST_FILE}"
+	RESULT=$(extract_number_from_file 0 2 "${TEST_FILE}")
+	verify_test "Test 9.d" "65535" "${RESULT}"
+	RESULT=$(extract_number_from_file 0 1 "${TEST_FILE}")
+	verify_test "Test 9.e" "255" "${RESULT}"
+	RESULT=$(extract_number_from_file 1 1 "${TEST_FILE}")
+	verify_test "Test 9.f" "255" "${RESULT}"
+
+	rm "${TEST_FILE}"
+	replace_bytes 0 "0x00000000" "${TEST_FILE}"
+	RESULT=$(extract_number_from_file 1 4 "${TEST_FILE}")
+	verify_test "Test 9.g" "0" "${RESULT}"
+
+	replace_number_in_file 1 255 "${TEST_FILE}"
+	echo "Current file contents: `extract_bytes 0 4 "${TEST_FILE}"`"
+	RESULT=$(extract_number_from_file 1 1 "${TEST_FILE}")
+	verify_test "Test 10.a" "255" "${RESULT}"
+	RESULT=$(extract_number_from_file 0 1 "${TEST_FILE}")
+	verify_test "Test 10.b" "0" "${RESULT}"
+	RESULT=$(extract_number_from_file 2 1 "${TEST_FILE}")
+	verify_test "Test 10.c" "0" "${RESULT}"
+	RESULT=$(extract_number_from_file 3 1 "${TEST_FILE}")
+	verify_test "Test 10.d" "0" "${RESULT}"
+	RESULT=$(extract_number_from_file 1 3 "${TEST_FILE}")
+	verify_test "Test 10.e" "255" "${RESULT}"
+
+	rm "${TEST_FILE}"
+	replace_bytes 0 "0x00000000" "${TEST_FILE}"
+	RESULT=$(extract_number_from_file 1 4 "${TEST_FILE}")
+	verify_test "Test 10.f" "0" "${RESULT}"
+
+	replace_number_in_file 1 65535 "${TEST_FILE}"
+	echo "Current file contents: `extract_bytes 0 4 "${TEST_FILE}"`"
+	RESULT=$(extract_number_from_file 0 1 "${TEST_FILE}")
+	verify_test "Test 10.g" "0" "${RESULT}"
+	RESULT=$(extract_number_from_file 1 1 "${TEST_FILE}")
+	verify_test "Test 10.h" "255" "${RESULT}"
+	RESULT=$(extract_number_from_file 2 1 "${TEST_FILE}")
+	verify_test "Test 10.i" "255" "${RESULT}"
+	RESULT=$(extract_number_from_file 3 1 "${TEST_FILE}")
+	verify_test "Test 10.j" "0" "${RESULT}"	
+	RESULT=$(extract_number_from_file 1 2 "${TEST_FILE}")
+	verify_test "Test 10.k" "65535" "${RESULT}"
+
 
 	rm "${TEST_FILE}"
 
