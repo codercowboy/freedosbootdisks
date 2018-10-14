@@ -106,14 +106,14 @@ reverse_hex_order() {
 
 # extracts bytes from file from specified offset in a hex string format
 # arg 1: byte offset to start reading from in decimal ie "123"
-# arg 2: count of bytes to read
+# arg 2: count of bytes to read in decimal ie "4"
 # arg 3: file to extract from
 # returns: bytes in hex format ie "0xABCD"
 extract_bytes() {
 	debug_log "extract_bytes offset: ${1}, byte count: ${2}, file: ${3}"
 	# from: https://unix.stackexchange.com/questions/155085/fetching-individual-bytes-from-a-binary-file-into-a-variable-with-bash
 	# and: https://stackoverflow.com/questions/6292645/convert-binary-data-to-hex-in-shell-script
-	OUTPUT="0x`dd if=${3} count=${2} bs=1 skip=${1} conv=notrunc | hexdump -e '"%x"'`" 
+	OUTPUT="0x`dd if=${3} count=${2} bs=1 skip=${1} conv=notrunc | hexdump -e '"%X"'`" 
 	# extracted bytes are backwards hex like 434241 when we want 414243
 	OUTPUT=`reverse_hex_order "${OUTPUT}"`
 	# extracted bytes are now 0x414243
@@ -123,12 +123,21 @@ extract_bytes() {
 
 # replace bytes to file at specified offset
 # arg 1: byte offset to start writing to in decimal ie "123"
-# arg 2: count of bytes to write
-# arg 3: bytes to write in hex string format ie "0xABCD"
-# arg 4: file to replace bytes in
+# arg 2: bytes to write in hex string format ie "0xABCD"
+# arg 3: file to replace bytes in
+# returns: nothing
 replace_bytes() {
-	debug_log "replace_bytes offset: ${1}, byte count: ${2}, bytes to write: ${3}, file: ${4}"
-	echo "Not written yet"
+	debug_log "replace_bytes offset: ${1}, bytes to write: ${2}, file: ${3}"
+	# from: https://stackoverflow.com/questions/4783657/cli-write-byte-at-address-hexedit-modify-binary-from-the-command-line
+	# input is something like "0x434241", strip the "0x" from front
+	INPUT=`echo -n "${2}" | sed 's/0x//'`	
+	# byte count to write is length of string / 2
+	BYTE_COUNT=`expr ${#INPUT} / 2`
+	# printf needs a format of \x41\x42 with "\x" between each hex pair to print hex as ascii
+	# put the "\x" in the string
+	INPUT=`echo -n "${INPUT}" | sed 's/\(..\)/\\\\x\1/g'`
+	debug_log "replace_bytes final input: ${INPUT}, byte count: ${BYTE_COUNT}"
+	printf ${INPUT} | dd of=${3} bs=1 seek=${1} count=${BYTE_COUNT} conv=notrunc 
 }
 
 # converts hex string to a decimal number
@@ -136,7 +145,11 @@ replace_bytes() {
 # returns: decimal number such as "123"
 convert_hex_to_number() {
 	debug_log "convert_hex_to_number input: ${1}"
-	echo "Not written yet"
+	# from: https://stackoverflow.com/questions/378829/convert-decimal-to-hexadecimal-in-unix-shell-script
+	# input is something like "0x0FFF", convert it to a number:
+	NUMBER=`echo $((${1}))`
+	debug_log "convert_hex_to_number result: ${NUMBER}"
+	echo -n "${NUMBER}"
 }
 
 # converts decimal number to a hex string
@@ -144,7 +157,24 @@ convert_hex_to_number() {
 # returns: hex string ie "0xABCD"
 convert_number_to_hex() {
 	debug_log "convert_number_to_hex input: ${1}"
-	echo "Not written yet"
+	# from: https://stackoverflow.com/questions/378829/convert-decimal-to-hexadecimal-in-unix-shell-script
+	# and: http://wiki.bash-hackers.org/commands/builtin/printf
+	# input example: 12
+	RESULT=`printf "%X" "${1}"`
+	# result is now "C", we want to zero pad this to be "0C" if there's an odd number of digits
+	# from: https://stackoverflow.com/questions/17368067/length-of-string-in-bash
+	# and: http://tldp.org/LDP/abs/html/ops.html
+	debug_log "convert_number_to_hex initial hex: ${RESULT}"
+	REMAINDER=`expr ${#RESULT} % 2`
+	debug_log "convert_number_to_hex remainder: ${REMAINDER}"
+	if [ ${REMAINDER} -eq 1 -o "0" = "${RESULT}" ]; then
+		# odd number of hex digits, add a zero at front
+		RESULT="0${RESULT}"
+	fi
+	# add "0x" to beginning of result
+	RESULT="0x${RESULT}"
+	debug_log "convert_number_to_hex result: ${RESULT}"
+	echo -n "${RESULT}"
 }
 
 # converts hex string to an ascii string
@@ -174,7 +204,10 @@ convert_hex_to_ascii_string() {
 # returns: hex string ie "0xABCD"
 convert_ascii_string_to_hex() {
 	debug_log "convert_ascii_string_to_hex input: ${1}"
-	echo "Not written yet"
+	# from: https://stackoverflow.com/questions/5724761/ascii-hex-convert-in-bash/5725125
+	RESULT="0x`echo -n "${1}" | hexdump -e '/1 "%02X"'`"
+	debug_log "convert_ascii_string_to_hex result: ${RESULT}"
+	echo -n "${RESULT}"
 }
 
 
@@ -188,7 +221,7 @@ extract_number_from_file() {
 	HEX_BYTES=$(extract_bytes ${1} ${2} "${3}")
 	NUMBER=$(convert_hex_to_number ${FIXED_HEX_BYTES})
 	debug_log "extract_number_from_file result: ${NUMBER}"
-	return ${NUMBER}
+	echo -n "${NUMBER}"
 }
 
 # extracts a ascii string from bytes in a file
@@ -206,29 +239,27 @@ extract_string_from_file() {
 
 # replaces the given string in a file
 # arg 1: byte offset to start writing to in decimal ie "123"
-# arg 2: length of bytes to write
-# arg 3: number to write in decimal ie "123"
-# arg 4: file to write to
+# arg 2: number to write in decimal ie "123"
+# arg 3: file to write to
+# returns: nothing
 replace_number_in_file() {
-	debug_log "replace_number_in_file offset: ${1}, bytes to write: ${2}, number to write: ${3}, file: ${4}"
+	debug_log "replace_number_in_file offset: ${1}, number to write: ${2}, file: ${3}"
 	#TODO: zero out the bytes first
 	HEX_BYTES=$(convert_number_to_hex "${3}")
-	FIXED_HEX_BYTES=$(reverse_hex_order ${HEX_BYTES})
-	replace_bytes ${1} ${2} ${FIXED_HEX_BYTES} "${FILE}"
+	replace_bytes ${1} "${HEX_BYTES}" "${3}"
 }
 
 
 # replaces the given string in a file
 # arg 1: byte offset to start writing to in decimal ie "123"
-# arg 2: length of bytes to write
-# arg 3: ascii string to write ie "Jason"
-# arg 4: file to write to
+# arg 2: ascii string to write ie "Jason"
+# arg 3: file to write to
+# returns: nothing
 replace_string_in_file() {
-	debug_log "replace_string_in_file offset: ${1}, bytes to write: ${2}, string to write: ${3}, file: ${4}"
-	HEX_BYTES=$(convert_ascii_string_to_hex "${3}")
+	debug_log "replace_string_in_file offset: ${1}, string to write: ${2}, file: ${3}"
+	HEX_BYTES=$(convert_ascii_string_to_hex "${2}")
 	#TODO: pad zeros to fill out bytes to write size buffer
-	FIXED_HEX_BYTES=$(reverse_hex_order ${HEX_BYTES})
-	replace_bytes ${1} ${2} ${FIXED_HEX_BYTES} "${FILE}"
+	replace_bytes ${1} "${HEX_BYTES}" "${3}"
 }
 
 if [ "DEBUG" = "${1}" ]; then
@@ -249,7 +280,7 @@ verify_test() {
 		echo "TEST FAILURE: ${1}, expected: '${2}', actual: '${3}'"
 		exit 1
 	else
-		echo "Test SUCCESS: ${1}"
+		echo "Test SUCCESS: ${1}, expected: '${2}', actual: '${3}'"
 	fi 
 }
 
@@ -259,7 +290,7 @@ if [ "TEST" = "${1}" ]; then
 	if [ -f "${TEST_FILE}" ]; then
 		rm "${TEST_FILE}"
 	fi
-	echo "ABCD" > "${TEST_FILE}"
+	echo -n "ABCD" > "${TEST_FILE}"
 	
 	RESULT=$(extract_string_from_file 0 4 "${TEST_FILE}")
 	verify_test "Test 1.a" "ABCD" "${RESULT}"
@@ -286,7 +317,7 @@ if [ "TEST" = "${1}" ]; then
 	RESULT=$(convert_hex_to_number "0x01")
 	verify_test "Test 3.b" "1" "${RESULT}"
 
-	RESULT=$(convert_hex_to_number "0x14")
+	RESULT=$(convert_hex_to_number "0x13")
 	verify_test "Test 3.c" "19" "${RESULT}"
 
 	RESULT=$(convert_hex_to_number "0x0F")
@@ -299,49 +330,77 @@ if [ "TEST" = "${1}" ]; then
 	verify_test "Test 3.f" "1" "${RESULT}"
 
 	RESULT=$(convert_hex_to_number "0xFF00FF")
-	verify_test "Test 3.g" "1" "${RESULT}"
+	verify_test "Test 3.g" "16711935" "${RESULT}"
 
-	RESULT=$(convert_hex_to_ascii_string "0x0000FF")
-	if [ ! "Jason" = "${RESULT}" ]; then
-		echo "Test 4.a failed, should be 'Jason' but was: ${RESULT}"
-		exit 1
-	fi
-
-	RESULT=$(convert_hex_to_ascii_string "0x0000FF000") # zero padding at end should be trimmed
-	if [ ! "Jason" = "${RESULT}" ]; then
-		echo "Test 4.b failed, should be 'Jason' but was: ${RESULT}"
-		exit 1
-	fi
-
+	RESULT=$(convert_hex_to_ascii_string "0x4A61736F6E")
+	verify_test "Test 4.a" "Jason" "${RESULT}"
+	
 	RESULT=$(convert_number_to_hex 0)
-	if [ ! "0x00" = "${RESULT}" ]; then
-		echo "Test 5.a failed, should be '0x00' but was: ${RESULT}"
-		exit 1
-	fi
+	verify_test "Test 5.a" "0x00" "${RESULT}"
 
 	RESULT=$(convert_number_to_hex 1)
-	if [ ! "0x01" = "${RESULT}" ]; then
-		echo "Test 5.b failed, should be '0x01' but was: ${RESULT}"
-		exit 1
-	fi
+	verify_test "Test 5.b" "0x01" "${RESULT}"
 
 	RESULT=$(convert_number_to_hex 15)
-	if [ ! "0x0F" = "${RESULT}" ]; then
-		echo "Test 5.c failed, should be '0x0F' but was: ${RESULT}"
-		exit 1
-	fi
+	verify_test "Test 5.c" "0x0F" "${RESULT}"
 
 	RESULT=$(convert_number_to_hex 255)
-	if [ ! "0xFF" = "${RESULT}" ]; then
-		echo "Test 5.d failed, should be '0xFF' but was: ${RESULT}"
-		exit 1
-	fi
+	verify_test "Test 5.d" "0xFF" "${RESULT}"
 
 	RESULT=$(convert_number_to_hex 123456789)
-	if [ ! "0xFF" = "${RESULT}" ]; then
-		echo "Test 5.e failed, should be '0xFF' but was: ${RESULT}"
-		exit 1
-	fi
+	verify_test "Test 5.e" "0x075BCD15" "${RESULT}"
+
+	RESULT=$(convert_ascii_string_to_hex "Jason")
+	verify_test "Test 6.a" "0x4A61736F6E" "${RESULT}"
+
+	# test file before here was "ABCD"
+
+	# lowercase to "abcd"
+	replace_bytes 0 "0x61626364" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 7.a" "abcd" "${RESULT}"
+
+	# write "A" in first byte
+	replace_bytes 0 "0x41" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 7.b" "Abcd" "${RESULT}"
+
+	# write "D" in fourth byte
+	replace_bytes 3 "0x44" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 7.c" "AbcD" "${RESULT}"
+
+	# write "EFG" at end
+	replace_bytes 4 "0x454647" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 7.d" "AbcDEFG" "${RESULT}"
+	
+	echo -n "ABCD" > "${TEST_FILE}"
+
+	# write "a" in first byte
+	replace_string_in_file 0 "a" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 8.a" "aBCD" "${RESULT}"
+
+	# write "d" in fourth byte
+	replace_string_in_file 3 "d" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 8.b" "aBCd" "${RESULT}"
+
+	# write "XY" in second/third byte
+	replace_string_in_file 1 "XY" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 8.c" "aXYd" "${RESULT}"
+
+	# write "ABCDEFGHIJK" over file
+	replace_string_in_file 0 "ABCDEFGHIJK" "${TEST_FILE}"
+	RESULT=`cat ${TEST_FILE}`
+	verify_test "Test 8.d" "ABCDEFGHIJK" "${RESULT}"
+
+	//TODO: extract_number_from_file
+	//TODO: replace_number_in_file
+
+	rm "${TEST_FILE}"
 
 	exit 0
 fi
