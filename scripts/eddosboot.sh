@@ -38,25 +38,18 @@ print_usage() {
 	echo ""
 	echo "---"
 	echo ""
-	echo "  EXTRACT_BOOT_SECTOR [SOURCE FILE] [TARGET FILE] - extract boot record from source file, save record in target file"
-	echo "  COPY_BOOT_SECTOR [SOURCE FILE] [TARGET FILE] - copy first boot sector from source file to target file."
+	echo "  COPY_BOOT_SECTOR [SOURCE FILE] [TARGET FILE] - copy boot sector from source file to target file, overwritting target's boot sector if target exists"
 	echo ""
 	echo "---"
 	echo ""
 	echo "  SHOW ALL [FILE] - displays all boot record properties for specified file"
 	echo "  SHOW SECTOR_SIZE [FILE] - display sector size"
 	echo "  SHOW SECTOR_COUNT [FILE] - display sector count"
-	echo "  SHOW CYLINDER_COUNT [FILE] - display cylinder count"
-	echo "  SHOW HEAD_COUNT [FILE] - display head count"
-	echo "  SHOW VOLUME_LABEL [FILE] - display volume label"	
 	echo ""
 	echo "---"
 	echo ""
 	echo "  CHANGE SECTOR_SIZE [SIZE] [FILE] - changes file's boot record sector size to specified size in bytes"
 	echo "  CHANGE SECTOR_COUNT [COUNT] [FILE] - change file's boot record sector count"
-	echo "  CHANGE CYLINDER_COUNT [COUNT] [FILE] - change file's boot record cylinder count"
-	echo "  CHANGE HEAD_COUNT [COUNT] [FILE] - change file's boot record head count"
-	echo "  CHANGE VOLUME_LABEL [LABEL] [FILE] - change file's boot record volume label"
 	echo ""
 	#//TODO: put in license
 	#//TODO: put in reference to github
@@ -84,13 +77,13 @@ source "${SCRIPT_HOME}/hexlib.sh"
 debug_log "SCRIPT_HOME: ${SCRIPT_HOME}"
 debug_log "Arguments: ${@}"
 
-if [ "NO_OP" = "${1}" ]; then
-	# do nothing, no op mode
 if [ -z "${1}" -o "HELP" = "${1}" ]; then
 	print_usage;
+	exit 1
 elif [ -z "${2}" -o -z "${3}" ]; then
 	print_usage "Incorrect arguments: ${@}"
 fi
+
 
 OPERATION="${1}"
 debug_log "OPERATION: ${OPERATION}"
@@ -104,35 +97,31 @@ if [ "SHOW" = "${OPERATION}" ]; then
 	FILE="${1}"
 	if [ -z "${FILE}" ]; then
 		print_usage "Invalid file: ${FILE}"
-	elif [ ! -r "${FILE}"]; then
+	elif [ ! -r "${FILE}" ]; then
 		print_usage "Invalid file. It's not a file or isn't readable: ${FILE}"
 	fi 
 
 	debug_log "Mode: SHOW, file: ${FILE}"
 
-	SECTOR_SIZE=`extract_number_from_file 0 0 "${FILE}"`
-	SECTOR_COUNT=`extract_number_from_file 0 0 "${FILE}"`
-	CYLINDER_COUNT=`extract_number_from_file 0 0 "${FILE}"`
-	HEAD_COUNT=`extract_number_from_file 0 0 "${FILE}"`
-	VOLUME_LABEL=`extract_string_from_file 0 0 "${FILE}"`
+	# from: https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm
+	# sector size: 0x0B-0x0C (2 bytes)
+	# sector count: 0x13-0x14 (2 bytes)
+
+	DECIMAL_ADDRESS=$(convert_hex_to_number "0x0B")
+	SECTOR_SIZE=`extract_reversed_number_from_file "${DECIMAL_ADDRESS}" 2 "${FILE}"`
+	DECIMAL_ADDRESS=$(convert_hex_to_number "0x13")
+	SECTOR_COUNT=`extract_reversed_number_from_file "${DECIMAL_ADDRESS}" 2 "${FILE}"`
 
 	if [ "ALL" = "${ACTION}" ]; then
 		echo "Boot properties for file: ${FILE}"
 		echo "  Sector size: ${SECTOR_SIZE}"
 		echo "  Sector count: ${SECTOR_COUNT}"
-		echo "  Cylinder count: ${CYLINDER_COUNT}"
-		echo "  Head count: ${HEAD_COUNT}"
-		echo "  Volume label: ${VOLUME_LABEL}"
 	elif [ "SECTOR_SIZE" = "${ACTION}" ]; then
-		echo "${SECTOR_SIZE}"
+		echo -n "${SECTOR_SIZE}"
 	elif [ "SECTOR_COUNT" = "${ACTION}" ]; then
-		echo "${SECTOR_COUNT}"
-	elif [ "CYLINDER_COUNT" = "${ACTION}" ]; then
-		echo "${CYLINDER_COUNT}"
-	elif [ "HEAD_COUNT" = "${ACTION}" ]; then
-		echo "${HEAD_COUNT}"
+		echo -n "${SECTOR_COUNT}"
 	elif [ "VOLUME_LABEL" = "${ACTION}" ]; then	
-		echo "${VOLUME_LABEL}"
+		echo -n "${VOLUME_LABEL}"
 	else 
 		print_usage "Unsupported 'SHOW' mode: ${ACTION}"
 	fi
@@ -152,24 +141,25 @@ elif [ "CHANGE" = "${OPERATION}" ]; then
 
 	debug_log "Mode: CHANGE, value: ${VALUE}, file: ${FILE}"
 
+	# from: https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm
+	# sector size: 0x0B-0x0C (2 bytes)
+	# sector count: 0x13-0x14 (2 bytes)
+
+	HEX_BYTES=$(convert_number_to_hex "${VALUE}")
+	# if only one byte is in number ie 0x01, change it to 0x0001
+	if [ ${#HEX_BYTES} -eq 4 ]; then
+		HEX_BYTES=`echo -n ${HEX_BYTES} | sed 's/0x/0x00/'`
+	fi
+	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")	
+	DECIMAL_ADDRESS=""
 	if [ "SECTOR_SIZE" = "${ACTION}" ]; then
-		# TODO: check that it's a valid sector size
-		echo ""
+		DECIMAL_ADDRESS=$(convert_hex_to_number "0x0B")
 	elif [ "SECTOR_COUNT" = "${ACTION}" ]; then
-		# TODO: check that it's a valid sector count
-		echo ""
-	elif [ "CYLINDER_COUNT" = "${ACTION}" ]; then
-		# TODO: check that it's a valid cylinder count
-		echo ""
-	elif [ "HEAD_COUNT" = "${ACTION}" ]; then
-		# TODO: check that it's a valid head count
-		echo ""
-	elif [ "VOLUME_LABEL" = "${ACTION}" ]; then		
-		# TODO: check that it's a valid volume label
-		echo ""
+		DECIMAL_ADDRESS=$(convert_hex_to_number "0x13")
 	else
 		print_usage "Unsupported 'CHANGE' mode: ${ACTION}"
 	fi
+	replace_bytes "${DECIMAL_ADDRESS}" "${HEX_BYTES_REVERSED}" "${FILE}"
 elif [ "CREATE" = "${OPERATION}" ]; then
 	VOLUME_LABEL="${1}"
 	if [ -z "${VOLUME_LABEL}" ]; then #TODO: check for valid volume label here too
@@ -182,14 +172,23 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SIZE] [FILE] - creates a boot disk with specified file size"
 	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS .img boot sector."
 	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - create boot sector with given sector specifications"
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SIZE] [FILE] - create boot sector with specified standard diskette size"
-	
-elif [ "EXTRACT_BOOT_SECTOR" = "${OPERATION}" ]; then	
-	echo "  EXTRACT_BOOT_SECTOR [SOURCE FILE] [TARGET FILE] - extract boot record from source file, save record in target file"
+	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SIZE] [FILE] - create boot sector with specified standard diskette size"	
 elif [ "COPY_BOOT_SECTOR" = "${OPERATION}" ]; then	
-	echo "  COPY_BOOT_SECTOR [SOURCE FILE] [TARGET FILE] - copy first boot sector from source file to target file."
-elif [ "NO_OP" = "${OPERATION}" ]; then	
-	echo "eddosboot.sh is in no operation mode (used for unit tests)."
+	SOURCE_FILE="${ACTION}"
+	if [ -z "${SOURCE_FILE}" ]; then
+		print_usage "Invalid source file: ${SOURCE_FILE}"
+	elif [ ! -r "${SOURCE_FILE}" ]; then
+		print_usage "Invalid source file. It's not a file or isn't readable: ${SOURCE_FILE}"
+	fi 
+	TARGET_FILE="${1}"
+	if [ -z "${TARGET_FILE}" ]; then
+		print_usage "Invalid target file: ${TARGET_FILE}"
+	elif [ -f "${TARGET_FILE}" -a ! -w "${SOURCE_FILE}" ]; then
+		print_usage "Invalid target file. It's not a file or isn't writable: ${TARGET_FILE}"
+	fi 
+	debug_log "Mode: COPY_BOOT_SECTOR, source file: ${SOURCE_FILE}, target file: ${TARGET_FILE}"
+
+	dd if=${SOURCE_FILE} of=${TARGET_FILE} bs=512 count=1 conv=notrunc
 else
 	print_usage "Unsupported operation: ${OPERATION}"
 fi

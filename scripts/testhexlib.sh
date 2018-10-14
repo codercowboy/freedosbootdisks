@@ -6,21 +6,7 @@ DEBUG_HEXLIB="true"
 
 SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
 
-source "${SCRIPT_HOME}/eddosboot.sh" NO_OP
-
-# verifies test results
-# arg 1: test name
-# arg 2: expected result
-# arg 3: actual result
-# returns: nothing
-verify_test() {
-	if [ ! "${2}" = "${3}" ]; then
-		echo "TEST FAILURE: ${1}, expected: '${2}', actual: '${3}'"
-		exit 1
-	else
-		echo "Test SUCCESS: ${1}, expected: '${2}', actual: '${3}'"
-	fi 
-}
+source "${SCRIPT_HOME}/hexlib.sh"
 
 TEST_FILE="${SCRIPT_HOME}/test.tmp"
 debug_log "TEST_FILE: ${TEST_FILE}"
@@ -218,5 +204,8 @@ RESULT=$(extract_number_from_file 1 2 "${TEST_FILE}")
 verify_test "Test 10.n" "312" "${RESULT}"
 
 rm "${TEST_FILE}"
+
+echo ""
+echo "All Tests Passed!"
 
 exit 0

@@ -8,6 +8,20 @@ debug_log() {
 	fi
 }
 
+# verifies test results
+# arg 1: test name
+# arg 2: expected result
+# arg 3: actual result
+# returns: nothing
+verify_test() {
+	if [ ! "${2}" = "${3}" ]; then
+		echo "TEST FAILURE: ${1}, expected: '${2}', actual: '${3}'"
+		exit 1
+	else
+		echo "Test SUCCESS: ${1}, expected: '${2}', actual: '${3}'"
+	fi 
+}
+
 # reverses a hex string such as "0x4241" to "0x4142"
 # arg 1: string to reverse
 # returns: reversed string
@@ -173,6 +187,21 @@ extract_number_from_file() {
 	echo -n "${NUMBER}"
 }
 
+# extracts a decimal number from bytes in a file where hex bytes in file are reversed (ie should be 0x021A but are written as 0x1A02)
+# arg 1: byte offset to start reading from in decimal ie "123"
+# arg 2: length of bytes to read
+# arg 3: file to extract from
+# returns: decimal number such as "123"
+extract_reversed_number_from_file() {
+	debug_log "extract_reversed_number_from_file offset: ${1}, bytes to read: ${2}, file: ${3}"
+	HEX_BYTES=$(extract_bytes ${1} ${2} "${3}")
+	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")
+	NUMBER=$(convert_hex_to_number ${HEX_BYTES_REVERSED})
+	debug_log "extract_number_from_file result: ${NUMBER}"
+	echo -n "${NUMBER}"
+}
+
+
 # extracts a ascii string from bytes in a file
 # arg 1: byte offset to start reading from in decimal ie "123"
 # arg 2: length of bytes to read
@@ -186,7 +215,7 @@ extract_string_from_file() {
 	echo -n "${ASCII_STRING}"
 }
 
-# replaces the given string in a file
+# replaces the given number in a file
 # arg 1: byte offset to start writing to in decimal ie "123"
 # arg 2: number to write in decimal ie "123"
 # arg 3: file to write to
@@ -196,6 +225,19 @@ replace_number_in_file() {
 	#TODO: zero out the bytes first
 	HEX_BYTES=$(convert_number_to_hex "${2}")
 	replace_bytes ${1} "${HEX_BYTES}" "${3}"
+}
+
+# replaces the given number in a file with reversed hex bytes written to disk
+# arg 1: byte offset to start writing to in decimal ie "123"
+# arg 2: number to write in decimal ie "123"
+# arg 3: file to write to
+# returns: nothing
+replace_reversed_number_in_file() {
+	debug_log "replace_reversed_number_in_file offset: ${1}, number to write: ${2}, file: ${3}"
+	#TODO: zero out the bytes first
+	HEX_BYTES=$(convert_number_to_hex "${2}")
+	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")
+	replace_bytes ${1} "${HEX_BYTES_REVERSED}" "${3}"
 }
 
 
