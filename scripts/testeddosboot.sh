@@ -85,6 +85,10 @@ ${SCRIPT_HOME}/eddosboot.sh DEBUG CHANGE SECTOR_COUNT 5 "${TEST_BOOT_SECTOR}"
 RESULT=$(${SCRIPT_HOME}/eddosboot.sh DEBUG SHOW SECTOR_COUNT "${TEST_BOOT_SECTOR}")
 verify_test "Test 4.b" "5" "${RESULT}"
 
+${SCRIPT_HOME}/eddosboot.sh DEBUG CHANGE SECTOR_COUNT 2880 "${TEST_BOOT_SECTOR}"
+RESULT=$(${SCRIPT_HOME}/eddosboot.sh DEBUG SHOW SECTOR_COUNT "${TEST_BOOT_SECTOR}")
+verify_test "Test 4.c" "2880" "${RESULT}"
+
 # test copying boot sector
 cp "${SOURCE_BOOT_DISK}" "${TEST_BOOT_DISK}"
 
@@ -100,7 +104,7 @@ ${SCRIPT_HOME}/eddosboot.sh DEBUG COPY_BOOT_SECTOR "${TEST_BOOT_SECTOR}" "${TEST
 RESULT=$(${SCRIPT_HOME}/eddosboot.sh DEBUG SHOW SECTOR_SIZE "${TEST_BOOT_DISK}")
 verify_test "Test 5.b" "19" "${RESULT}"
 RESULT=$(${SCRIPT_HOME}/eddosboot.sh DEBUG SHOW SECTOR_COUNT "${TEST_BOOT_DISK}")
-verify_test "Test 5.c" "5" "${RESULT}"
+verify_test "Test 5.c" "2880" "${RESULT}"
 TARGET_FILE_SIZE=$(stat -f%z "${TEST_BOOT_DISK}")
 if [ ! "${SOURCE_FILE_SIZE}" = "${TARGET_FILE_SIZE}" ]; then
 	echo "Test 5.d failure: copied file is not correct size after boot sector copy, should be: ${SOURCE_FILE_SIZE}, but is: ${TARGET_FILE_SIZE}"

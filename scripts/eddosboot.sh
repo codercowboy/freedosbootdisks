@@ -66,21 +66,27 @@ change_boot_sector_property() {
 	# from: https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm
 	# sector size: 0x0B-0x0C (2 bytes)
 	# sector count: 0x13-0x14 (2 bytes)
-
+	debug_log "change_boot_sector_property mode: ${1}, value: ${2}, file: ${3}"
 	HEX_BYTES=$(convert_number_to_hex "${2}")
+	debug_log "change_boot_sector_property value hex bytes: ${HEX_BYTES}"
 	# if only one byte is in number ie 0x01, change it to 0x0001
 	if [ ${#HEX_BYTES} -eq 4 ]; then
 		HEX_BYTES=`echo -n ${HEX_BYTES} | sed 's/0x/0x00/'`
+		debug_log "change_boot_sector_property value hex bytes after padding: ${HEX_BYTES}"
 	fi
 	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")	
+	debug_log "change_boot_sector_property value hex bytes reversed: ${HEX_BYTES_REVERSED}"
 	DECIMAL_ADDRESS=""
 	if [ "SECTOR_SIZE" = "${1}" ]; then
 		DECIMAL_ADDRESS=$(convert_hex_to_number "0x0B")
+		debug_log "change_boot_sector_property sector size write address '${DECIMAL_ADDRESS} (converted from '0x0B')"
 	elif [ "SECTOR_COUNT" = "${1}" ]; then
 		DECIMAL_ADDRESS=$(convert_hex_to_number "0x13")
+		debug_log "change_boot_sector_property sector count write address '${DECIMAL_ADDRESS} (converted from '0x13')"
 	else
 		print_usage "Unsupported 'CHANGE' mode: ${ACTION}"
 	fi
+	debug_log "change_boot_sector_property writing value: ${HEX_BYTES_REVERSED} to address: ${DECIMAL_ADDRESS} in file: ${3}"
 	replace_bytes "${DECIMAL_ADDRESS}" "${HEX_BYTES_REVERSED}" "${3}"
 }
 
@@ -132,8 +138,10 @@ if [ "SHOW" = "${OPERATION}" ]; then
 	# sector size: 0x0B-0x0C (2 bytes)
 	# sector count: 0x13-0x14 (2 bytes)
 
+	debug_log "Mode SHOW extracting sector size (this is always fetched in show mode)"
 	DECIMAL_ADDRESS=$(convert_hex_to_number "0x0B")
 	SECTOR_SIZE=`extract_reversed_number_from_file "${DECIMAL_ADDRESS}" 2 "${FILE}"`
+	debug_log "Mode SHOW extracting sector count (this is always fetched in show mode)"
 	DECIMAL_ADDRESS=$(convert_hex_to_number "0x13")
 	SECTOR_COUNT=`extract_reversed_number_from_file "${DECIMAL_ADDRESS}" 2 "${FILE}"`
 
@@ -178,6 +186,7 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 	fi
 	shift
 	
+	FORMAT=1440
 	FILE_SIZE="1.4MB"
 	SECTOR_SIZE="512"
 	SECTOR_COUNT=""
@@ -201,19 +210,21 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 		print_usage "Invalid 'CREATE' operation arguments: ${@}"
 	fi
 
+
 	if [ "2.8MB" = "${FILE_SIZE}" ]; then
-		SECTOR_COUNT=$((2880 * 2))
+		FORMAT=2880
 	elif [ "1.4MB" = "${FILE_SIZE}" ]; then
-		SECTOR_COUNT=$((1440 * 2))
+		FORMAT=1440
 	elif [ "720K" = "${FILE_SIZE}" ]; then
-		SECTOR_COUNT=$((720 * 2))
+		FORMAT=720
 	elif [ "320K" = "${FILE_SIZE}" ]; then
-		SECTOR_COUNT=$((320 * 2))
+		FORMAT=320
 	elif [ "160K" = "${FILE_SIZE}" ]; then
-		SECTOR_COUNT=$((160 * 2))
+		FORMAT=160
 	else
 		print_usage "Unsupported 'CREATE' mode file size: '${FILE_SIZE}', supported sizes are: 2.8MB, 1.4MB, 720K, 360K, and 160K"
 	fi
+	SECTOR_COUNT=$((FORMAT * 2))
 
 	# copy the source v86 boot sector to a tmp file
 	mkdir -p "${BUILD_HOME}"
@@ -232,7 +243,7 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 		dd if=/dev/zero of="${FILE}" bs=${SECTOR_SIZE} count=${SECTOR_COUNT}		
 
 		# format the floppy image as FAT12
-		newfs_msdos -B "${TMP_BOOT_SECTOR}" -v "${VOLUME_LABEL}" -f ${SECTOR_COUNT} -b ${SECTOR_SIZE} -S ${SECTOR_SIZE} -r 1 -F 12 "${FILE}"
+		newfs_msdos -B "${TMP_BOOT_SECTOR}" -v "${VOLUME_LABEL}" -f ${FORMAT} -b ${SECTOR_SIZE} -S ${SECTOR_SIZE} -r 1 -F 12 "${FILE}"
 
 		# remove temporary boot sector file
 		rm "${TMP_BOOT_SECTOR}"
