@@ -9,12 +9,18 @@ SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
 source "${SCRIPT_HOME}/hexlib.sh"
 
 SOURCE_BOOT_DISK="${SCRIPT_HOME}/../lib/v86.freedos.boot.disk.img"
-TEST_BOOT_SECTOR="${SCRIPT_HOME}/test.boot.sector.img"
-TEST_BOOT_DISK="${SCRIPT_HOME}/test.boot.disk.img"
+BUILD_HOME="${SCRIPT_HOME}/../build"
+mkdir -p "${BUILD_HOME}"
+TEST_BOOT_SECTOR="${BUILD_HOME}/test.boot.sector.img"
+TEST_BOOT_DISK="${BUILD_HOME}/test.boot.disk.img"
 
 debug_log "SOURCE_BOOT_DISK: ${SOURCE_BOOT_DISK}"
 debug_log "TEST_BOOT_SECTOR: ${TEST_BOOT_SECTOR}"
 debug_log "TEST_BOOT_DISK: ${TEST_BOOT_DISK}"
+
+if [ -f "${TEST_BOOT_SECTOR}" ]; then
+	rm "${TEST_BOOT_DISK}"
+fi
 
 if [ -f "${TEST_BOOT_SECTOR}" ]; then
 	rm "${TEST_BOOT_SECTOR}"
@@ -114,34 +120,99 @@ if [ ! "${SOURCE_FILE_SIZE}" = "${TARGET_FILE_SIZE}" ]; then
 fi
 echo "Test 5.a passed: copied file is correct size after boot sector copy"
 
-# in this case, we are copying to a new file that doesn't exist, it should only be 512 bytes
+# arg 1: test number
+# arg 2: expected sector size
+# arg 3: expected sector count
+# arg 4: expected file size
+check_boot_sector() {
+	TEST_NUMBER="${1}"
+	EXPECTED_SECTOR_SIZE="${2}"
+	EXPECTED_SECTOR_COUNT="${3}"
+	EXPECTED_DISK_SIZE="${4}"
+	TARGET_FILE_SIZE=$(stat -f%z "${TEST_BOOT_DISK}")
+	if [ ! "${EXPECTED_DISK_SIZE}" = "${TARGET_FILE_SIZE}" ]; then
+		echo "Test ${TEST_NUMBER}.a failure: created file is not correct size after creation, should be: ${EXPECTED_DISK_SIZE}, but is: ${TARGET_FILE_SIZE}"
+		exit 1
+	fi
+	echo "Test ${TEST_NUMBER}.a passed, disk is expected size: ${EXPECTED_DISK_SIZE}"
+	RESULT=$(${SCRIPT_HOME}/eddosboot.sh DEBUG SHOW SECTOR_SIZE "${TEST_BOOT_DISK}")
+	verify_test "Test ${TEST_NUMBER}.b" "${EXPECTED_SECTOR_SIZE}" "${RESULT}"
+	RESULT=$(${SCRIPT_HOME}/eddosboot.sh DEBUG SHOW SECTOR_COUNT "${TEST_BOOT_DISK}")
+	verify_test "Test ${TEST_NUMBER}.c" "${EXPECTED_SECTOR_COUNT}" "${RESULT}"
+}
+
+# arg 1: test number
+# arg 2: expected sector size
+# arg 3: expected sector count
+check_boot_disk() { 
+	check_boot_sector "${1}" "${2}" "${3}" "$(($2 * $3))"
+}
+
+# test boot disk creation
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "${TEST_BOOT_DISK}"
+check_boot_disk 7 512 2880
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS 1024 200 "${TEST_BOOT_DISK}"
+check_boot_disk 8 1024 200
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "2.8MB" "${TEST_BOOT_DISK}"
+check_boot_disk 9 512 $((2880 * 2))
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "1.4MB" "${TEST_BOOT_DISK}"
+check_boot_disk 10 512 2880
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "720K" "${TEST_BOOT_DISK}"
+check_boot_disk 11 512 1440
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "360K" "${TEST_BOOT_DISK}"
+check_boot_disk 12 512 640
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "160K" "${TEST_BOOT_DISK}"
+check_boot_disk 13 512 320
+
+# test boot sector creation
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "${TEST_BOOT_DISK}"
+check_boot_sector 7 512 2880 512
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS 1024 200 "${TEST_BOOT_DISK}"
+check_boot_sector 8 1024 200 512
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "2.8MB" "${TEST_BOOT_DISK}"
+check_boot_sector 9 512 $((2880 * 2)) 512
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "1.4MB" "${TEST_BOOT_DISK}"
+check_boot_sector 10 512 2880 512
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "720K" "${TEST_BOOT_DISK}"
+check_boot_sector 11 512 1440 512
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "360K" "${TEST_BOOT_DISK}"
+check_boot_sector 12 512 640 512
+
+rm "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "160K" "${TEST_BOOT_DISK}"
+check_boot_sector 13 512 320 512
 
 
 rm "${TEST_BOOT_SECTOR}"
+rm "${TEST_BOOT_DISK}"
 
 echo ""
 echo "All Tests Passed!"
 
 exit 0
-
-print_usage_x() {
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS boot disk"
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - creates boot disk w/ given sector specifications"
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SIZE] [FILE] - creates a boot disk with specified file size"
-	echo "      Supported boot disk file sizes: 160K 320K 720K 1.4MB"
-	echo ""
-	echo "  Example Usage: CREATE_BOOT_DISK MYDISK 720K disk.img"
-	echo ""
-	echo "  Example above would create a 720K FreeDOS boot disk in the disk.img file with the volume label of MYDISK."
-	echo ""
-	echo ""
-	echo " The following commands create 512 byte FreeDOS boot sectors in specified file in .img format."
-	echo " If specified file exists, first 512 bytes of file will be overwritten with new boot record."
-	echo " If specified file is new, newly created file will be 512 bytes and contain boot sector."
-	echo ""
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS .img boot sector."
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - create boot sector with given sector specifications"
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SIZE] [FILE] - create boot sector with specified standard diskette size"
-	echo "      Supported boot disk sizes: 160K 320K 720K 1.4MB"
-	echo ""
-}

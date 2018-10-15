@@ -59,7 +59,7 @@ extract_bytes() {
 	debug_log "extract_bytes offset: ${1}, byte count: ${2}, file: ${3}"
 	# from: https://unix.stackexchange.com/questions/155085/fetching-individual-bytes-from-a-binary-file-into-a-variable-with-bash
 	# and: https://stackoverflow.com/questions/6292645/convert-binary-data-to-hex-in-shell-script
-	OUTPUT="0x`dd if=${3} count=${2} bs=1 skip=${1} conv=notrunc | hexdump -e '"%X"'`" 
+	OUTPUT="0x`dd if="${3}" count=${2} bs=1 skip=${1} conv=notrunc | hexdump -e '"%X"'`" 
 	OUTPUT=$(fix_hex_padding "${OUTPUT}")
 	# extracted bytes are backwards hex like 434241 when we want 414243
 	OUTPUT=`reverse_hex_order "${OUTPUT}"`
@@ -84,7 +84,7 @@ replace_bytes() {
 	# put the "\x" in the string
 	INPUT=`echo -n "${INPUT}" | sed 's/\(..\)/\\\\x\1/g'`
 	debug_log "replace_bytes final input: ${INPUT}, byte count: ${BYTE_COUNT}"
-	printf ${INPUT} | dd of=${3} bs=1 seek=${1} count=${BYTE_COUNT} conv=notrunc 
+	printf ${INPUT} | dd of="${3}" bs=1 seek=${1} count=${BYTE_COUNT} conv=notrunc 
 }
 
 # converts hex string to a decimal number
@@ -187,7 +187,7 @@ extract_number_from_file() {
 	echo -n "${NUMBER}"
 }
 
-# extracts a decimal number from bytes in a file where hex bytes in file are reversed (ie should be 0x021A but are written as 0x1A02)
+# extracts a decimal number from bytes in a file where hex bytes in file are reversed (ie should be 0x021A but are read as 0x1A02)
 # arg 1: byte offset to start reading from in decimal ie "123"
 # arg 2: length of bytes to read
 # arg 3: file to extract from
@@ -222,7 +222,6 @@ extract_string_from_file() {
 # returns: nothing
 replace_number_in_file() {
 	debug_log "replace_number_in_file offset: ${1}, number to write: ${2}, file: ${3}"
-	#TODO: zero out the bytes first
 	HEX_BYTES=$(convert_number_to_hex "${2}")
 	replace_bytes ${1} "${HEX_BYTES}" "${3}"
 }
@@ -234,7 +233,6 @@ replace_number_in_file() {
 # returns: nothing
 replace_reversed_number_in_file() {
 	debug_log "replace_reversed_number_in_file offset: ${1}, number to write: ${2}, file: ${3}"
-	#TODO: zero out the bytes first
 	HEX_BYTES=$(convert_number_to_hex "${2}")
 	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")
 	replace_bytes ${1} "${HEX_BYTES_REVERSED}" "${3}"
@@ -249,6 +247,5 @@ replace_reversed_number_in_file() {
 replace_string_in_file() {
 	debug_log "replace_string_in_file offset: ${1}, string to write: ${2}, file: ${3}"
 	HEX_BYTES=$(convert_ascii_string_to_hex "${2}")
-	#TODO: pad zeros to fill out bytes to write size buffer
 	replace_bytes ${1} "${HEX_BYTES}" "${3}"
 }

@@ -17,7 +17,7 @@ print_usage() {
 	echo " The disk will be FAT12 formatted. The disk will contain FreeDOS KERNEL.SYS, CONFIG.SYS, and COMMAND.COM files."
 	echo ""
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS boot disk"
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - creates boot disk w/ given sector specifications"
+	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SECTOR SIZE] [SECTOR COUNT] [FILE] - creates boot disk w/ given sector specifications"
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SIZE] [FILE] - creates a boot disk with specified file size"
 	echo "      Supported boot disk file sizes: 160K 320K 720K 1.4MB"
 	echo ""
@@ -32,7 +32,7 @@ print_usage() {
 	echo " If specified file is new, newly created file will be 512 bytes and contain boot sector."
 	echo ""
 	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS .img boot sector."
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - create boot sector with given sector specifications"
+	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SECTOR SIZE] [SECTOR COUNT] [FILE] - create boot sector with given sector specifications"
 	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SIZE] [FILE] - create boot sector with specified standard diskette size"
 	echo "      Supported boot disk sizes: 160K 320K 720K 1.4MB"
 	echo ""
@@ -51,9 +51,6 @@ print_usage() {
 	echo "  CHANGE SECTOR_SIZE [SIZE] [FILE] - changes file's boot record sector size to specified size in bytes"
 	echo "  CHANGE SECTOR_COUNT [COUNT] [FILE] - change file's boot record sector count"
 	echo ""
-	#//TODO: put in license
-	#//TODO: put in reference to github
-	#//TODO: put in references to other things (freeDOS, v86, virtualbox, qemu, boot record reference)
 	if [ ! -z "${1}" ]; then
 		echo ""
 		echo "ERROR: ${1}"
@@ -61,7 +58,35 @@ print_usage() {
 	fi
 }
 
+# changes a boot sector property
+# arg 1: mode: SECTOR_SIZE or SECTOR_COUNT
+# arg 2: value to write
+# arg 3: boot sector file
+change_boot_sector_property() {
+	# from: https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm
+	# sector size: 0x0B-0x0C (2 bytes)
+	# sector count: 0x13-0x14 (2 bytes)
+
+	HEX_BYTES=$(convert_number_to_hex "${2}")
+	# if only one byte is in number ie 0x01, change it to 0x0001
+	if [ ${#HEX_BYTES} -eq 4 ]; then
+		HEX_BYTES=`echo -n ${HEX_BYTES} | sed 's/0x/0x00/'`
+	fi
+	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")	
+	DECIMAL_ADDRESS=""
+	if [ "SECTOR_SIZE" = "${1}" ]; then
+		DECIMAL_ADDRESS=$(convert_hex_to_number "0x0B")
+	elif [ "SECTOR_COUNT" = "${1}" ]; then
+		DECIMAL_ADDRESS=$(convert_hex_to_number "0x13")
+	else
+		print_usage "Unsupported 'CHANGE' mode: ${ACTION}"
+	fi
+	replace_bytes "${DECIMAL_ADDRESS}" "${HEX_BYTES_REVERSED}" "${3}"
+}
+
 SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
+BUILD_HOME="${SCRIPT_HOME}/../build"
+SOURCE_BOOT_DISK="${SCRIPT_HOME}/../lib/v86.freedos.boot.disk.img"
 
 if [ "DEBUG" = "${1}" ]; then
 	DEBUG_HEXLIB="true"
@@ -140,39 +165,104 @@ elif [ "CHANGE" = "${OPERATION}" ]; then
 	fi 
 
 	debug_log "Mode: CHANGE, value: ${VALUE}, file: ${FILE}"
-
-	# from: https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm
-	# sector size: 0x0B-0x0C (2 bytes)
-	# sector count: 0x13-0x14 (2 bytes)
-
-	HEX_BYTES=$(convert_number_to_hex "${VALUE}")
-	# if only one byte is in number ie 0x01, change it to 0x0001
-	if [ ${#HEX_BYTES} -eq 4 ]; then
-		HEX_BYTES=`echo -n ${HEX_BYTES} | sed 's/0x/0x00/'`
-	fi
-	HEX_BYTES_REVERSED=$(reverse_hex_order "${HEX_BYTES}")	
-	DECIMAL_ADDRESS=""
-	if [ "SECTOR_SIZE" = "${ACTION}" ]; then
-		DECIMAL_ADDRESS=$(convert_hex_to_number "0x0B")
-	elif [ "SECTOR_COUNT" = "${ACTION}" ]; then
-		DECIMAL_ADDRESS=$(convert_hex_to_number "0x13")
-	else
-		print_usage "Unsupported 'CHANGE' mode: ${ACTION}"
-	fi
-	replace_bytes "${DECIMAL_ADDRESS}" "${HEX_BYTES_REVERSED}" "${FILE}"
+	change_boot_sector_property "${ACTION}" "${VALUE}" "${FILE}"
 elif [ "CREATE" = "${OPERATION}" ]; then
+	if [ ! -f "${SOURCE_BOOT_DISK}" ]; then
+		echo "ERROR: source FreeDOS boot disk image is missing: ${SOURCE_BOOT_DISK}"
+		exit 1
+	fi
+
 	VOLUME_LABEL="${1}"
 	if [ -z "${VOLUME_LABEL}" ]; then #TODO: check for valid volume label here too
 		print_usage "Invalid volume label: ${VOLUME_LABEL}"
 	fi
 	shift
+	
+	FILE_SIZE="1.4MB"
+	SECTOR_SIZE="512"
+	SECTOR_COUNT=""
+	FILE=""
+	if [ ! -z "${3}" ]; then #if there are three arguments, it's [SECTOR COUNT] [SECTOR SIZE] [FILE]
+		if [ -z "${2}" -o -z "${1}" ]; then
+			print_usage "Invalid 'CREATE' operation arguments: ${@}"
+		fi
+		FILE="${3}"
+		SECTOR_COUNT="${2}"
+		SECTOR_SIZE="${1}"
+	elif [ ! -z "${2}" ]; then #if there are two arguments it's [SIZE] [FILE]
+		if [ -z "${1}" ]; then
+			print_usage "Invalid 'CREATE' operation arguments: ${@}"
+		fi
+		FILE="${2}"
+		FILE_SIZE="${1}"
+	elif [ ! -z "${1}" ]; then #if there's only one argument it's [FILE]
+		FILE="${1}"
+	else 
+		print_usage "Invalid 'CREATE' operation arguments: ${@}"
+	fi
 
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS boot disk"
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - creates boot disk w/ given sector specifications"
-	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SIZE] [FILE] - creates a boot disk with specified file size"
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS .img boot sector."
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SECTOR COUNT] [SECTOR SIZE] [FILE] - create boot sector with given sector specifications"
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SIZE] [FILE] - create boot sector with specified standard diskette size"	
+	if [ "2.8MB" = "${FILE_SIZE}" ]; then
+		SECTOR_COUNT=$((2880 * 2))
+	elif [ "1.4MB" = "${FILE_SIZE}" ]; then
+		SECTOR_COUNT=$((1440 * 2))
+	elif [ "720K" = "${FILE_SIZE}" ]; then
+		SECTOR_COUNT=$((720 * 2))
+	elif [ "320K" = "${FILE_SIZE}" ]; then
+		SECTOR_COUNT=$((320 * 2))
+	elif [ "160K" = "${FILE_SIZE}" ]; then
+		SECTOR_COUNT=$((160 * 2))
+	else
+		print_usage "Unsupported 'CREATE' mode file size: '${FILE_SIZE}', supported sizes are: 2.8MB, 1.4MB, 720K, 360K, and 160K"
+	fi
+
+	# copy the source v86 boot sector to a tmp file
+	mkdir -p "${BUILD_HOME}"
+	TMP_BOOT_SECTOR="${BUILD_HOME}/bootsector.tmp"
+	dd if="${SOURCE_BOOT_DISK}" of="${TMP_BOOT_SECTOR}" bs=512 count=1
+
+	#fix the sector size and count in the boot sector
+	change_boot_sector_property SECTOR_SIZE "${SECTOR_SIZE}" "${TMP_BOOT_SECTOR}"
+	change_boot_sector_property SECTOR_COUNT "${SECTOR_COUNT}" "${TMP_BOOT_SECTOR}"
+
+	# from: https://apple.stackexchange.com/questions/338718/creating-bootable-freedos-dos-floppy-diskette-img-file-for-v86-on-osx
+	if [ "BOOT_DISK" = "${ACTION}" ]; then
+		echo "Creating ${FILE_SIZE} FreeDOS boot disk with ${SECTOR_COUNT} sectors, sector size is ${SECTOR_SIZE}, file: ${FILE}"
+
+		# create an empty img file with all zeros in it
+		dd if=/dev/zero of="${FILE}" bs=${SECTOR_SIZE} count=${SECTOR_COUNT}		
+
+		# format the floppy image as FAT12
+		newfs_msdos -B "${TMP_BOOT_SECTOR}" -v "${VOLUME_LABEL}" -f ${SECTOR_COUNT} -b ${SECTOR_SIZE} -S ${SECTOR_SIZE} -r 1 -F 12 "${FILE}"
+
+		# remove temporary boot sector file
+		rm "${TMP_BOOT_SECTOR}"
+
+		# mount our source freedos image fetched from the V86 demo page, and copy our minimal files from it
+		# this mounts as /Volumes/FREEDOS
+
+		hdiutil attach -readonly "${SOURCE_BOOT_DISK}"
+		cp /Volumes/FREEDOS/COMMAND.COM "${BUILD_HOME}/"
+		cp /Volumes/FREEDOS/KERNEL.SYS "${BUILD_HOME}/"
+		cp /Volumes/FREEDOS/CONFIG.SYS "${BUILD_HOME}/"
+		hdiutil eject /Volumes/FREEDOS/
+
+		# mount our target .img file we just created, it'll mount as /Volumes/${VOLUME_LABEL}, copy our minimal files to it
+		hdiutil attach "${FILE}"
+		cp "${BUILD_HOME}/COMMAND.COM" "/Volumes/${VOLUME_LABEL}/"
+		cp "${BUILD_HOME}/KERNEL.SYS" "/Volumes/${VOLUME_LABEL}/"
+		cp "${BUILD_HOME}/CONFIG.SYS" "/Volumes/${VOLUME_LABEL}/"
+		hdiutil eject "/Volumes/${VOLUME_LABEL}/"
+
+		echo "Finished creating boot diskette image: ${FILE}"
+
+	elif [ "BOOT_SECTOR" = "${ACTION}" ]; then
+		echo "Creating ${FILE_SIZE} FreeDOS boot sector with ${SECTOR_COUNT} sectors, sector size is ${SECTOR_SIZE}, file: ${FILE}"
+		cp "${TMP_BOOT_SECTOR}" "${FILE}"
+	else 
+		rm "${TMP_BOOT_SECTOR}"
+		print_usage "Unsupported 'CREATE' operation: ${ACTION}, supported operations are BOOT_DISK and BOOT_SECTOR"		
+	fi		
+	rm "${TMP_BOOT_SECTOR}"	
 elif [ "COPY_BOOT_SECTOR" = "${OPERATION}" ]; then	
 	SOURCE_FILE="${ACTION}"
 	if [ -z "${SOURCE_FILE}" ]; then
@@ -188,7 +278,7 @@ elif [ "COPY_BOOT_SECTOR" = "${OPERATION}" ]; then
 	fi 
 	debug_log "Mode: COPY_BOOT_SECTOR, source file: ${SOURCE_FILE}, target file: ${TARGET_FILE}"
 
-	dd if=${SOURCE_FILE} of=${TARGET_FILE} bs=512 count=1 conv=notrunc
+	dd if="${SOURCE_FILE}" of="${TARGET_FILE}" bs=512 count=1 conv=notrunc
 else
 	print_usage "Unsupported operation: ${OPERATION}"
 fi
