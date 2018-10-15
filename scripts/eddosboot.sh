@@ -20,6 +20,8 @@ print_usage() {
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SECTOR SIZE] [SECTOR COUNT] [FILE] - creates boot disk w/ given sector specifications"
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SIZE] [FILE] - creates a boot disk with specified file size"
 	echo "      Supported boot disk file sizes: 160K 320K 720K 1.4MB"
+	echo "  CREATE_ALL_BOOT_DISKS - create all supported boot disks in build/bootdisks folder."
+	echo "  CREATE_ALL_BOOT_DISKS [VOLUME LABEL] - create all supported boot disks in build/bootdisks folder with specified Volume Label."
 	echo ""
 	echo "  Example Usage: CREATE_BOOT_DISK MYDISK 720K disk.img"
 	echo ""
@@ -31,10 +33,11 @@ print_usage() {
 	echo " If specified file exists, first 512 bytes of file will be overwritten with new boot record."
 	echo " If specified file is new, newly created file will be 512 bytes and contain boot sector."
 	echo ""
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS .img boot sector."
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SECTOR SIZE] [SECTOR COUNT] [FILE] - create boot sector with given sector specifications"
-	echo "  CREATE BOOT_SECTOR [VOLUME LABEL] [SIZE] [FILE] - create boot sector with specified standard diskette size"
+	echo "  CREATE BOOT_SECTOR [FILE] - creates a 1.4MB FreeDOS .img boot sector."
+	echo "  CREATE BOOT_SECTOR [SECTOR SIZE] [SECTOR COUNT] [FILE] - create boot sector with given sector specifications"
+	echo "  CREATE BOOT_SECTOR [SIZE] [FILE] - create boot sector with specified standard diskette size"
 	echo "      Supported boot disk sizes: 160K 320K 720K 1.4MB"
+	echo "  CREATE_ALL_BOOT_SECTORS - create all supported boot sectors in build/bootsectors folder."
 	echo ""
 	echo "---"
 	echo ""
@@ -92,7 +95,7 @@ change_boot_sector_property() {
 
 SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
 BUILD_HOME="${SCRIPT_HOME}/../build"
-SOURCE_BOOT_DISK="${SCRIPT_HOME}/../lib/v86.freedos.boot.disk.img"
+SOURCE_BOOT_DISK="${SCRIPT_HOME}/lib/v86.freedos.boot.disk.img"
 
 if [ "DEBUG" = "${1}" ]; then
 	DEBUG_HEXLIB="true"
@@ -111,10 +114,7 @@ debug_log "Arguments: ${@}"
 if [ -z "${1}" -o "HELP" = "${1}" ]; then
 	print_usage;
 	exit 1
-elif [ -z "${2}" -o -z "${3}" ]; then
-	print_usage "Incorrect arguments: ${@}"
 fi
-
 
 OPERATION="${1}"
 debug_log "OPERATION: ${OPERATION}"
@@ -180,11 +180,14 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 		exit 1
 	fi
 
-	VOLUME_LABEL="${1}"
-	if [ -z "${VOLUME_LABEL}" ]; then #TODO: check for valid volume label here too
-		print_usage "Invalid volume label: ${VOLUME_LABEL}"
+	VOLUME_LABEL="";
+	if [ "BOOT_DISK" = "${ACTION}" ]; then
+		VOLUME_LABEL="${1}"
+		if [ -z "${VOLUME_LABEL}" ]; then #TODO: check for valid volume label here too
+			print_usage "Invalid volume label: ${VOLUME_LABEL}"
+		fi
+		shift
 	fi
-	shift
 	
 	FORMAT=1440
 	FILE_SIZE="1.4MB"
@@ -210,10 +213,10 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 		print_usage "Invalid 'CREATE' operation arguments: ${@}"
 	fi
 
+	# more formats are listed here: https://en.wikipedia.org/wiki/List_of_floppy_disk_formats
+	# the newfs_msdos command's man page (man newfs_msdos) lists a few more supported file sizes too
 
-	if [ "2.8MB" = "${FILE_SIZE}" ]; then
-		FORMAT=2880
-	elif [ "1.4MB" = "${FILE_SIZE}" ]; then
+	if [ "1.4MB" = "${FILE_SIZE}" ]; then
 		FORMAT=1440
 	elif [ "720K" = "${FILE_SIZE}" ]; then
 		FORMAT=720
@@ -222,11 +225,12 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 	elif [ "160K" = "${FILE_SIZE}" ]; then
 		FORMAT=160
 	else
-		print_usage "Unsupported 'CREATE' mode file size: '${FILE_SIZE}', supported sizes are: 2.8MB, 1.4MB, 720K, 360K, and 160K"
+		print_usage "Unsupported 'CREATE' mode file size: '${FILE_SIZE}', supported sizes are: 1.4MB, 720K, 320K, and 160K"
 	fi
-	SECTOR_COUNT=$((FORMAT * 2))
+	SECTOR_COUNT=$((FORMAT * 2))	
 
 	# copy the source v86 boot sector to a tmp file
+	debug_log "Creating temp boot sector: ${TMP_BOOT_SECTOR}"
 	mkdir -p "${BUILD_HOME}"
 	TMP_BOOT_SECTOR="${BUILD_HOME}/bootsector.tmp"
 	dd if="${SOURCE_BOOT_DISK}" of="${TMP_BOOT_SECTOR}" bs=512 count=1
@@ -234,6 +238,9 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 	#fix the sector size and count in the boot sector
 	change_boot_sector_property SECTOR_SIZE "${SECTOR_SIZE}" "${TMP_BOOT_SECTOR}"
 	change_boot_sector_property SECTOR_COUNT "${SECTOR_COUNT}" "${TMP_BOOT_SECTOR}"
+
+	# NOTE: probable bug here, we're not setting correct cylinder/head count on various formats
+	# see: https://en.wikipedia.org/wiki/List_of_floppy_disk_formats
 
 	# from: https://apple.stackexchange.com/questions/338718/creating-bootable-freedos-dos-floppy-diskette-img-file-for-v86-on-osx
 	if [ "BOOT_DISK" = "${ACTION}" ]; then
@@ -243,25 +250,12 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 		dd if=/dev/zero of="${FILE}" bs=${SECTOR_SIZE} count=${SECTOR_COUNT}		
 
 		# format the floppy image as FAT12
-		newfs_msdos -B "${TMP_BOOT_SECTOR}" -v "${VOLUME_LABEL}" -f ${FORMAT} -b ${SECTOR_SIZE} -S ${SECTOR_SIZE} -r 1 -F 12 "${FILE}"
-
-		# remove temporary boot sector file
-		rm "${TMP_BOOT_SECTOR}"
-
-		# mount our source freedos image fetched from the V86 demo page, and copy our minimal files from it
-		# this mounts as /Volumes/FREEDOS
-
-		hdiutil attach -readonly "${SOURCE_BOOT_DISK}"
-		cp /Volumes/FREEDOS/COMMAND.COM "${BUILD_HOME}/"
-		cp /Volumes/FREEDOS/KERNEL.SYS "${BUILD_HOME}/"
-		cp /Volumes/FREEDOS/CONFIG.SYS "${BUILD_HOME}/"
-		hdiutil eject /Volumes/FREEDOS/
+		newfs_msdos -B "${TMP_BOOT_SECTOR}" -v "${VOLUME_LABEL}" -f ${FORMAT} -b 1024 -S ${SECTOR_SIZE} -r 1 -F 12 "${FILE}"
 
 		# mount our target .img file we just created, it'll mount as /Volumes/${VOLUME_LABEL}, copy our minimal files to it
+		echo "Copying boot disk contents from ${SCRIPT_HOME}/lib/boot_disk_contents"
 		hdiutil attach "${FILE}"
-		cp "${BUILD_HOME}/COMMAND.COM" "/Volumes/${VOLUME_LABEL}/"
-		cp "${BUILD_HOME}/KERNEL.SYS" "/Volumes/${VOLUME_LABEL}/"
-		cp "${BUILD_HOME}/CONFIG.SYS" "/Volumes/${VOLUME_LABEL}/"
+		cp -r "${SCRIPT_HOME}/lib/boot_disk_contents/" "/Volumes/${VOLUME_LABEL}"
 		hdiutil eject "/Volumes/${VOLUME_LABEL}/"
 
 		echo "Finished creating boot diskette image: ${FILE}"
@@ -290,6 +284,53 @@ elif [ "COPY_BOOT_SECTOR" = "${OPERATION}" ]; then
 	debug_log "Mode: COPY_BOOT_SECTOR, source file: ${SOURCE_FILE}, target file: ${TARGET_FILE}"
 
 	dd if="${SOURCE_FILE}" of="${TARGET_FILE}" bs=512 count=1 conv=notrunc
+elif [ "CREATE_ALL_BOOT_DISKS" = "${OPERATION}" ]; then
+	VOLUME_LABEL="FREEDOS";
+	if [ ! -z "${ACTION}" ]; then
+		VOLUME_LABEL="${ACTION}"
+	fi
+	BUILD_FOLDER="${BUILD_HOME}/bootdisks"
+	mkdir -p "${BUILD_FOLDER}"
+	echo "Creating standard FreeDOS boot disks in folder: ${BUILD_FOLDER}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.1.4MB.img"
+	echo "Creating 1.4MB FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 1.4MB "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.720K.img"
+	echo "Creating 720K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 720K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.320K.img"
+	echo "Creating 320K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 320K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.160K.img"
+	echo "Creating 160K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 160K "${FILE}"
+
+	echo "Finished creating standard FreeDOS boot disks."
+elif [ "CREATE_ALL_BOOT_SECTORS" = "${OPERATION}" ]; then
+	BUILD_FOLDER="${BUILD_HOME}/bootsectors"
+	mkdir -p "${BUILD_FOLDER}"
+	echo "Creating standard FreeDOS boot sectors in folder: ${BUILD_FOLDER}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.1.4MB.img"
+	echo "Creating 1.4MB FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 1.4MB "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.720K.img"
+	echo "Creating 720K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 720K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.320K.img"
+	echo "Creating 320K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 320K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.160K.img"
+	echo "Creating 160K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 160K "${FILE}"
+	echo "Finished creating standard FreeDOS boot sectors."
 else
 	print_usage "Unsupported operation: ${OPERATION}"
 fi

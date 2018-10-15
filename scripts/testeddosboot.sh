@@ -8,7 +8,7 @@ SCRIPT_HOME="`dirname ${BASH_SOURCE[0]}`"
 
 source "${SCRIPT_HOME}/hexlib.sh"
 
-SOURCE_BOOT_DISK="${SCRIPT_HOME}/../lib/v86.freedos.boot.disk.img"
+SOURCE_BOOT_DISK="${SCRIPT_HOME}/lib/v86.freedos.boot.disk.img"
 BUILD_HOME="${SCRIPT_HOME}/../build"
 mkdir -p "${BUILD_HOME}"
 TEST_BOOT_SECTOR="${BUILD_HOME}/test.boot.sector.img"
@@ -159,23 +159,26 @@ ${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "${TEST_BOOT_DISK}"
 check_boot_disk 7 512 2880
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS 1024 200 "${TEST_BOOT_DISK}"
-check_boot_disk 8 1024 200
-
-rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "2.8MB" "${TEST_BOOT_DISK}"
-check_boot_disk 9 512 $((2880 * 2))
-
-rm "${TEST_BOOT_DISK}"
 ${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "1.4MB" "${TEST_BOOT_DISK}"
 check_boot_disk 10 512 2880
+
+echo "TEST HERE"
+echo "TEST HERE"
+echo "TEST HERE"
+echo "TEST HERE"
+echo "TEST HERE"
+echo "TEST HERE"
+echo "TEST HERE"
+echo "TEST HERE"
+
+echo ""
 
 rm "${TEST_BOOT_DISK}"
 ${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "720K" "${TEST_BOOT_DISK}"
 check_boot_disk 11 512 1440
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "360K" "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_DISK FREEDOS "320K" "${TEST_BOOT_DISK}"
 check_boot_disk 12 512 640
 
 rm "${TEST_BOOT_DISK}"
@@ -185,31 +188,23 @@ check_boot_disk 13 512 320
 # test boot sector creation
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR "${TEST_BOOT_DISK}"
 check_boot_sector 7 512 2880 512
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS 1024 200 "${TEST_BOOT_DISK}"
-check_boot_sector 8 1024 200 512
-
-rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "2.8MB" "${TEST_BOOT_DISK}"
-check_boot_sector 9 512 $((2880 * 2)) 512
-
-rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "1.4MB" "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR "1.4MB" "${TEST_BOOT_DISK}"
 check_boot_sector 10 512 2880 512
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "720K" "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR "720K" "${TEST_BOOT_DISK}"
 check_boot_sector 11 512 1440 512
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "360K" "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR "320K" "${TEST_BOOT_DISK}"
 check_boot_sector 12 512 640 512
 
 rm "${TEST_BOOT_DISK}"
-${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR FREEDOS "160K" "${TEST_BOOT_DISK}"
+${SCRIPT_HOME}/eddosboot.sh DEBUG CREATE BOOT_SECTOR "160K" "${TEST_BOOT_DISK}"
 check_boot_sector 13 512 320 512
 
 

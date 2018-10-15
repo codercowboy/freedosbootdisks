@@ -114,6 +114,7 @@ Boot process resources:
  * [MBR Fix Guide for Various Windows Versions](https://neosmart.net/wiki/fix-mbr/)
  * [More MBR Tools](https://thestarman.pcministry.com/asm/mbr/BootToolsRefs.htm)
  * [Boot Sector Tools for Windows](https://www.raymond.cc/blog/5-free-tools-to-backup-and-restore-master-boot-record-mbr/)
+ * [Wikipedia's List Of Floppy Disk Formats](https://en.wikipedia.org/wiki/List_of_floppy_disk_formats)
  
  Open-source / Free DOS distributions:
 
@@ -198,7 +199,9 @@ Early [floppy disks came in sizes](https://en.wikipedia.org/wiki/Floppy_disk#Siz
     	2880 : { type: 5, tracks: 80, sectors: 36, heads: 2 },
     };
 
-A floppy diskette does not have a MBR, but instead has a [Volume Boot Sector](https://en.wikipedia.org/wiki/Volume_boot_record) (VBR). I'm a little confused on the difference between a MBR and a VBR, but my basic understanding is that a MBR is used on devices like hard disks that support partitions or multiple partitions, and a VBR is used on storage mediums without partitions (such as floppy diskettes). 
+More details on floppy disk formats are listed on [Wikipedia's List Of Floppy Disk Formats](https://en.wikipedia.org/wiki/List_of_floppy_disk_formats).
+
+A floppy diskette does not have a MBR, but instead has a [Volume Boot Record](https://en.wikipedia.org/wiki/Volume_boot_record) (VBR). I'm a little confused on the difference between a MBR and a VBR, but my basic understanding is that a MBR is used on devices like hard disks that support partitions or multiple partitions, and a VBR is used on storage mediums without partitions (such as floppy diskettes). 
 
 The bootable FreeDOS diskettes provided in this project are FAT12 format, because that's what the original v86 floppy image was formatted in. I think later boot disk formats for Windows, Linux, and other operating systems were not necessarily FAT12, as the MBR/VBR generally has a jump command that points to some x86 instructions to first run a disk driver, which is a program that reads FAT information from a drive and controls organizing, reading, and writing files and folders. 
 
