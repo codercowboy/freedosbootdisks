@@ -7,23 +7,23 @@ This project also contains various utility scripts written for MacOS in bash. De
 # Plans
   
   * Fix all links in this readme that have empty links
-  * Make a script to extract / replace boot sectors
-  * Make a script to change volume labels in a boot sector
-  * Make a script to create empty image, copy boot sector in place, copy freedos files in place
-  * Check in sample
-  * Generate the dos images
+  * add comments to every file about their sources, license and so on
+  * clarify licensing on distributed v86/freedos images
+  * add small readme into boot disks about source of the disks
+  * Add descriptions of scripts to readme
+  * Review readme  
 
 # Demo
 
-Fabian Hemmer hosts an excellent v86 Demo that demonstrates a number of OS installations such as versions of Windows, different Linux installations, and various DOS versions [here]().
+Fabian Hemmer hosts an excellent [v86 Demo]() that demonstrates a number of OS installations such as versions of Windows, different Linux installations, and various DOS versions [here]().
 
 A demo of one of the stripped down diskette images from this project running on v86 is hosted [here]().
 
 # Images
 
-The FreeDOS boot diskette images provided are minimal. They only contain the following: [KERNEL.SYS](http://help.fdos.org/en/hhstndrd/base/kernel.htm), [CONFIG.SYS](http://help.fdos.org/en/hhstndrd/cnfigsys/index.htm), and [COMMAND.COM](http://help.fdos.org/en/hhstndrd/base/command.htm), and they come in differing sizes in case you want to fill the image with a few more programs. 
+The FreeDOS boot diskette images provided are minimal. They only contain the following: [KERNEL.SYS](http://help.fdos.org/en/hhstndrd/base/kernel.htm), [CONFIG.SYS](http://help.fdos.org/en/hhstndrd/cnfigsys/index.htm), [AUTOEXEC.BAT](), and [COMMAND.COM](http://help.fdos.org/en/hhstndrd/base/command.htm), and they come in differing sizes in case you want to fill the image with a few more programs. 
 
-The [v86 OS image library](https://github.com/copy/images) provides a more robust [720KB FreeDOS bootable image](https://github.com/copy/images/blob/master/freedos722.img) with additional utilities, drivers, and games.
+The [v86 OS image library](https://github.com/copy/images) provides a more robust [720KB FreeDOS bootable image](https://github.com/copy/images/blob/master/freedos722.img) with additional utilities, drivers, and games. If needed, you can extract files from that image or any other boot diskette and place them in the [scripts/lib/boot_disk_contents]() director of this project and rebuild the boot disks using the [eddosboot.sh]() script.
 
 The provided images boot well in v86. I have not taken the time to see if they boot well on other virtualized platforms or on real vintage hardware. 
 
@@ -125,7 +125,8 @@ Boot process resources:
 Tools: 
 
  * [FreeDOS](http://www.freedos.org/)
- * [NANSI.SYS](http://help.fdos.org/en/hhstndrd/base/nansi.htm) - Make your prompt different colors in FreeDOS.
+ * [FreeDOS NANSI.SYS Reference](http://help.fdos.org/en/hhstndrd/base/nansi.htm) - Make your prompt different colors in FreeDOS.
+ * [FreeDOS CONFIG.SYS Reference](http://www.freedos.org/kernel/config.txt)
  * [Ansi Color Guide](https://kb.iu.edu/d/aamm)
  * [VirtualBox](https://www.virtualbox.org/) - Free OS virtualization platform.
  * [QEMU](https://www.qemu.org/) - Another free OS virtualization platform.
@@ -144,10 +145,13 @@ Javascript x86 Emulation:
 Further Resources:
 
 * [v86 image creation tips for QEMU](https://github.com/copy/v86/issues/128)
+* [Gentle Introduction to FreeDOS](https://opensource.com/article/18/4/gentle-introduction-freedos)
 * [FreeDOS on QEMU Installation Guide](http://how-to.wikia.com/wiki/How_to_install_FreeDOS_in_QEMU)
+* [Another FreeDOS QEMU Installation Guide](https://opensource.com/article/17/10/run-dos-applications-linux)
 * [Booting QEMU from a Floppy Image](https://stackoverflow.com/questions/19961095/os-development-booting-from-floppy-drive-using-qemu)
 * [Creating A Minimal Boot Sector For v86](https://blog.benjdoherty.com/2017/08/07/Writing-a-minimal-boot-sector-for-the-v86-emulator/)
 * [archive.org's free dos game library](https://archive.org/details/softwarelibrary_msdos_games?) - powered by em-dosbox
+
  
 # Trivia
 
