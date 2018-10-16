@@ -1,28 +1,45 @@
 <!doctype html>
-<script src="libv86.js"></script>
-<script>
-	"use strict";
+<html>
+	<head>
+		<title>FreeDOS Boot Disk Sample</title>
+		<style>
+			BODY { margin-left:auto; margin-right:auto; width:680px; background-color:black; color:white; 
+				font-size:14px; font-family:monospace; line-height:16px; }
+			A { color:grey; text-decoration:none; }
+			A:hover { text-decoration:underline; }
+			#screen_container { border:1px solid white; padding:5px; }
+		</style>
+		<script src="libv86.js"></script>
+		<script>
+			"use strict";
 
-	/* comment out these lines as necessary to use the disk image you want */
-	var floppy_image_file = "freedos.boot.disk.1.4MB.img";
-	floppy_image_file = "freedos.boot.disk.720K.img";
-	floppy_image_file = "freedos.boot.disk.320K.img";
-	floppy_image_file = "freedos.boot.disk.160K.img";
+			/* comment out these lines as necessary to use the disk image you want */
+			var floppy_image_file = "freedos.boot.disk.1.4MB.img";
+			floppy_image_file = "freedos.boot.disk.720K.img";
+			floppy_image_file = "freedos.boot.disk.320K.img";
+			floppy_image_file = "freedos.boot.disk.160K.img";
 
-	window.onload = function() {
-	    var emulator = window.emulator = new V86Starter({
-	        memory_size: 32 * 1024 * 1024,
-	        vga_memory_size: 2 * 1024 * 1024,
-	        screen_container: document.getElementById("screen_container"),
-	        bios: { url: "seabios.bin", },
-	        vga_bios: { url: "vgabios.bin", },
-	        fda: { "url": floppy_image_file, },
-	        autostart: true,
-	    });
-	}
-</script>
+			window.onload = function() {
+			    var emulator = window.emulator = new V86Starter({
+			        memory_size: 32 * 1024 * 1024,
+			        vga_memory_size: 2 * 1024 * 1024,
+			        screen_container: document.getElementById("screen_container"),
+			        bios: { url: "seabios.bin", },
+			        vga_bios: { url: "vgabios.bin", },
+			        fda: { "url": floppy_image_file, },
+			        autostart: true,
+			    });
+			}
+		</script>
+	</head>
+	<body>
+		<div id="screen_container">
+		    <div style="white-space:pre;"></div>
+		    <canvas style="display:none"></canvas>
+		</div>
 
-<div id="screen_container">
-    <div style="white-space: pre; font: 14px monospace; line-height: 14px"></div>
-    <canvas style="display: none"></canvas>
-</div>
+		<div class="sampleDescription">
+			<p>This <a href="http://www.freedos.org/">FreeDOS</a> browser example is powered by <a href="https://github.com/copy/v86">v86</a>. This specific sample was created for the <a href="https://github.com/codercowboy/freedosbootdisks">FreeDOS Boot Disks project</a>.</p>
+		</div>
+	</body>
+</html>
