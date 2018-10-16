@@ -1,39 +1,68 @@
 # FreeDOS Boot Disks
 
-The FreeDOS Boot Disks repository contains bootable [FreeDOS](http://www.freedos.org/) diskette images and [boot sectors](https://en.wikipedia.org/wiki/Boot_sector) from those diskettes. The diskette images can be used to boot a simple DOS shell in a virtual machine such as [VirtualBox](https://www.virtualbox.org/) or [QEMU](https://www.qemu.org/), or in a browser with Fabian Hemmer's [v86 x86 emulator](https://github.com/copy/v86). 
+The FreeDOS Boot Disks repository contains minimal bootable [FreeDOS](http://www.freedos.org/) diskette images and [boot sectors](https://en.wikipedia.org/wiki/Boot_sector) from those diskettes. The diskette images can be used to boot a simple DOS shell in a virtual machine such as [VirtualBox](https://www.virtualbox.org/) or [QEMU](https://www.qemu.org/), or in a browser with Fabian Hemmer's [v86 x86 emulator](https://github.com/copy/v86). 
 
 This project also contains various utility scripts written for MacOS in bash. Details on those are provided below.
 
 # Plans
   
-  * Fix all links in this readme that have empty links
-  * add comments to every file about their sources, license and so on
-  * clarify licensing on distributed v86/freedos images
-  * add small readme into boot disks about source of the disks
-  * Add descriptions of scripts to readme
   * Review readme  
 
 # Demo
 
-Fabian Hemmer hosts an excellent [v86 Demo]() that demonstrates a number of OS installations such as versions of Windows, different Linux installations, and various DOS versions [here]().
+Fabian Hemmer hosts an excellent [v86 Demo](https://copy.sh/v86/) that demonstrates a number of OS installations such as versions of Windows, different Linux installations, and various DOS versions [here](https://copy.sh/v86/).
 
-A demo of one of the stripped down diskette images from this project running on v86 is hosted [here]().
+A demo of one of the stripped down diskette images from this project running on v86 is hosted [here](http://www.codercowboy.com/freedos/).
 
-# Images
+# Boot Diskette Image Files
 
-The FreeDOS boot diskette images provided are minimal. They only contain the following: [KERNEL.SYS](http://help.fdos.org/en/hhstndrd/base/kernel.htm), [CONFIG.SYS](http://help.fdos.org/en/hhstndrd/cnfigsys/index.htm), [AUTOEXEC.BAT](), and [COMMAND.COM](http://help.fdos.org/en/hhstndrd/base/command.htm), and they come in differing sizes in case you want to fill the image with a few more programs. 
+FreeDOS Boot Diskette image files are available in the [bootdisks folder](https://github.com/codercowboy/freedosbootdisks/tree/master/bootdisks) of this project. 
 
-The [v86 OS image library](https://github.com/copy/images) provides a more robust [720KB FreeDOS bootable image](https://github.com/copy/images/blob/master/freedos722.img) with additional utilities, drivers, and games. If needed, you can extract files from that image or any other boot diskette and place them in the [scripts/lib/boot_disk_contents]() director of this project and rebuild the boot disks using the [eddosboot.sh]() script.
+The provided boot disk images are minimal. They only contain the following: [KERNEL.SYS](http://help.fdos.org/en/hhstndrd/base/kernel.htm), [CONFIG.SYS](http://help.fdos.org/en/hhstndrd/cnfigsys/index.htm), [AUTOEXEC.BAT](http://help.fdos.org/en/hhstndrd/batch/autoexec.htm), [COMMAND.COM](http://help.fdos.org/en/hhstndrd/base/command.htm), and a small [README.TXT](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/lib/boot_disk_contents/README.TXT) file with a link to this project. 
+
+The boot disk images come in differing sizes (160K, 320K, 720K, 1.4M) in case you want to fill the image with a few more programs. 
 
 The provided images boot well in v86. I have not taken the time to see if they boot well on other virtualized platforms or on real vintage hardware. 
 
-The diskette images are provided in the src/images directory. They are currently available in these sizes: 160KB, 320KB, 720KB, 1.4MB, and 2.8MB.
+# Customizing Boot Disks
 
-If you want, you can customize these image files easily with the [xyz]() script provided in this project, or perhaps run through a virtualized FreeDOS, DOS, Windows, or Linux installation using [QEMU](https://www.qemu.org/) or [VirtualBox](https://www.virtualbox.org/). 
+To customize any of the provided boot disk images, you can simply double click one of the boot diskette .img files in the MacOs Finder application to mount the disk, then use Finder (or the terminal, the disk will be mounted in /Volumes/FREEDOS) to customize the contents of the .img file. Be sure to eject the image file using finder (or 'hditutil eject /Volumes/FREEDOS') when you've finished customizing it.
+
+# Advanced Boot Disk Customization
+
+The FreeDOS boot disks provided by this project were built with the [eddosboot.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/eddosboot.sh) script, like so:
+
+   ./eddosboot.sh CREATE_ALL_BOOT_DISKS
+
+When [eddosboot.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/eddosboot.sh) creates boot disk images, the files from the project's [scripts/lib/boot_disk_contents](https://github.com/codercowboy/freedosbootdisks/tree/master/scripts/lib/boot_disk_contents) directory are copied to the diskette. 
+
+If needed, you can customize the contents of the [scripts/lib/boot_disk_contents](https://github.com/codercowboy/freedosbootdisks/tree/master/scripts/lib/boot_disk_contents) directory and rebuild the boot disks again using the CREATE_ALL_BOOT_DISKS command shown above. 
+
+The following resources will be helpful in customizing your installation:
+
+ * [FreeDOS Reference](http://help.fdos.org/en/index.htm)
+ * [FreeDOS CONFIG.SYS Reference](http://help.fdos.org/en/hhstndrd/cnfigsys/index.htm)
+ * [FreeDOS COMMAND.COM Reference](http://help.fdos.org/en/hhstndrd/base/command.htm)
+ * [FreeDOS AUTOEXEC.BAT Reference](http://help.fdos.org/en/hhstndrd/batch/autoexec.htm)
+ * [FreeDOS HIMEM.EXE Reference](http://help.fdos.org/en/hhstndrd/base/himem.htm)
+ * [FreeDOS NANSI.SYS Reference](http://help.fdos.org/en/hhstndrd/base/nansi.htm)
+ * [FreeDOS chkdsk Reference](http://help.fdos.org/en/hhstndrd/base/chkdsk.htm) - Alternative to MS ScanDisk.
+ * [FreeDOS fdisk Reference](http://help.fdos.org/en/hhstndrd/base/fdisk.htm)
+ * [FreeDOS format Reference](http://help.fdos.org/en/hhstndrd/base/format.htm)
+ * [FeeeDOS zip Reference](http://help.fdos.org/en/hhstndrd/util/zip.htm)
+ * [FreeDOS unzip Reference](http://help.fdos.org/en/hhstndrd/util/unzip.htm)
+ * [FreeDos md5sum Reference](http://help.fdos.org/en/hhstndrd/util/md5sum.htm)
+ * [WinWorld's Dos Application Library](https://winworldpc.com/library/applications/platform-dos) - Contains useful retro software such as WordPerfect, compilers, pkzip, etc.
+ * [v86 FreeDOS bootable image](https://github.com/copy/images/blob/master/freedos722.img) is fairly robust and contains several additional utilities, drivers, and games that aren't found in boot disks provided by this project. 
+
+If you don't feel comfortable customizing a FreeDOS boot disk's configuration by hand, then you can create FreeDOS boot diskettes by running through a virtualized FreeDOS installation using [QEMU](https://www.qemu.org/) or [VirtualBox](https://www.virtualbox.org/). Once you have the resulting FreeDOS boot disk image in hand, you can copy the disk's contents to the [scripts/lib/boot_disk_contents](https://github.com/codercowboy/freedosbootdisks/tree/master/scripts/lib/boot_disk_contents) directory and create the minimally sized disks again.
+
+ * [FreeDOS on QEMU Installation Guide](http://how-to.wikia.com/wiki/How_to_install_FreeDOS_in_QEMU)
+ * [Another FreeDOS QEMU Installation Guide](https://opensource.com/article/17/10/run-dos-applications-linux)
 
 # Boot Sectors
 
-[Boot sectors](https://en.wikipedia.org/wiki/Boot_sector) for each of the FreeDOS .img files mentioned above have been extracted and placed are available in the [boot_sector]() folder of this project.
+[Boot Sectors](https://en.wikipedia.org/wiki/Boot_sector) for each of the FreeDOS .img files mentioned above have been extracted and placed are available in the [bootsectors folder](https://github.com/codercowboy/freedosbootdisks/tree/master/bootsectors) of this project.
 
 # Booting in v86
 
@@ -61,7 +90,7 @@ It took a while for me to figure out how to run just his FreeDOS demo image loca
 	        	screen_container: document.getElementById("screen_container"),
 	        	bios: { url: "seabios.bin", },
 	        	vga_bios: { url: "vgabios.bin", },
-	        	fda: { "url": "myfloppy.img", },
+	        	fda: { "url": "freedos.boot.disk.160K.img", },
 	        	autostart: true,
     	    });
     	}
@@ -74,21 +103,45 @@ It took a while for me to figure out how to run just his FreeDOS demo image loca
 
 A few notes on the sample shown above:
 
- * This sample, complete with the seabios.img, vgabios.img, libv86.js, and myfloppy.img is provided in the [sample]() directory of this project.
- * You won't be able to run the example above by simply opening the html file from disk in your browser. Instead, you will need to run a http webserver on your machine. The easiest way to run a server on your machine is to run the following python command in the directory you want to server the html and img files from:
+  * This sample, complete with the seabios.img, vgabios.img, libv86.js, and myfloppy.img is provided in the [sample](https://github.com/codercowboy/freedosbootdisks/tree/master/sample) directory of this project.
+  * You won't be able to run the example above by simply opening the html file from disk in your browser. Instead, you will need to run a http webserver on your machine. The easiest way to run a server on your machine is to run the following python command in the directory you want to server the html and img files from:
 
     python -m SimpleHTTPServer 8070
 
- * The above example will host a [web server](https://en.wikipedia.org/wiki/Web_server) on your machine on port 8070. If you start the webserver in the [sample]() folder of this project, the url to fetch the sample.html will be:
+  * The above example will host a [web server](https://en.wikipedia.org/wiki/Web_server) on your machine on port 8070. If you start the webserver in the [sample](https://github.com/codercowboy/freedosbootdisks/tree/master/sample) folder of this project, the url to fetch the sample.html will be:
 
      http://localhost:8080/sample.html
 
- * Other popular [web server](https://en.wikipedia.org/wiki/Web_server) options to consider are [Apache](https://httpd.apache.org/), [NGINX](https://www.nginx.com/), a [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) stack (which includes apache as the webserver portion of the stack), [Tomcat](http://tomcat.apache.org/), or [Geronimo](http://geronimo.apache.org/). More webserver options are listed [here](https://en.wikipedia.org/wiki/Comparison_of_web_server_software). 
- * The seabios.bin and vgabios.bin images came from the v86 github project [here](https://github.com/copy/v86/tree/master/bios).
- * If you prefer, you can build the libv86.js file by cloing the v86 project from github. And [building it](https://github.com/copy/v86#how-to-build-run-and-embed) yourself. 
- * Cloning the v86 library locally also contains non-minimalized debug run mode when if you run from the v86 source.
- * You can easily provide more images for emulated hard drives and cdroms using the v86 api with params such as "hda" and "cdrom". The cd-rom images can be (or must be?) in .iso format.
- * The v86 API has a bunch of other options, those are documented [here](https://github.com/copy/v86/blob/master/docs/api.md) and [here](https://github.com/copy/v86).
+  * Other popular [web server](https://en.wikipedia.org/wiki/Web_server) options to consider are [Apache](https://httpd.apache.org/), [NGINX](https://www.nginx.com/), a [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) stack (which includes apache as the webserver portion of the stack), [Tomcat](http://tomcat.apache.org/), or [Geronimo](http://geronimo.apache.org/). More webserver options are listed [here](https://en.wikipedia.org/wiki/Comparison_of_web_server_software). 
+  * The seabios.bin and vgabios.bin images came from the v86 github project [here](https://github.com/copy/v86/tree/master/bios).
+  * If you prefer, you can build the libv86.js file by cloing the v86 project from github. And [building it](https://github.com/copy/v86#how-to-build-run-and-embed) yourself. 
+  * Cloning the v86 library locally also contains non-minimalized debug run mode when if you run from the v86 source.
+  * You can easily provide more images for emulated hard drives and cdroms using the v86 api with params such as "hda" and "cdrom". The cd-rom images can be (or must be?) in .iso format.
+  * The v86 API has a bunch of other options, those are documented [here](https://github.com/copy/v86/blob/master/docs/api.md) and [here](https://github.com/copy/v86).
+
+# Scripts
+
+A few scripts were written to automate boot disk creation, boot sector extraction/importing, and sector size/count editing. The scripts are in the [scripts]() directory of this project.
+
+All scripts are bash scripts intended to run on MacOS. 
+
+The primary script is [eddosboot.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/eddosboot.sh). It provides the following operations:
+
+ * Create minimal FreeDOS boot disk image files in the following sizes: 160K, 320K, 720K, 1.44M
+ * Create FreeDOS boot sector image files for supported boot disk sizes.
+ * Display boot disk / boot sector sector sizes and sector counts.
+ * Change boot disk / boot sector sector sizes and sector counts.
+ * Copy boot sector from one image file to another.
+ * Bulk mode to generate all supported boot disk sizes.
+ * Bulk mode to generate all supported boot sectors.
+
+The script provides usage instructions when it's run without any arguments like so:
+
+    ./eddosboot.sh
+
+The [testeddosboot.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/testeddosboot.sh) script provides some unit tests that exercise [eddosboot.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/eddosboot.sh) functionality.
+
+The project also includes a small library of hex conversion and read/write bash functions in [hexlib.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/hexlib.sh). A test script [testhexlib.sh](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/testhexlib.sh) is also provided.
 
 # Bugs / Possible Problems
 
@@ -101,8 +154,8 @@ I'm not a vintage hardware guru, so I would not be surprised if the images I've 
  If you want to edit sector sizes, sector counts, volume names, cylinder counts, or track counts, I recommend the following resources: 
 
   * [MS Dos 5.0 Boot Sector Reference](https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm)
-  * [Decimal To Hex Converter](https://www.rapidtables.com/convert/number/decimal-to-hex.html?x=320)
-  * [Hex Editor for MacOS]()
+  * [Decimal To Hex / Hex to Decimal Converters](https://www.rapidtables.com/convert/number/decimal-to-hex.html?x=320)
+  * [Hex Editor for MacOS](https://ridiculousfish.com/hexfiend/)
 
 # Resources
 
@@ -118,16 +171,16 @@ Boot process resources:
  
  Open-source / Free DOS distributions:
 
-* [DOSBox](https://www.dosbox.com/)
-* [FreeDOS](http://www.freedos.org/)
-* [MS-DOS 1.25 & 2.0](https://github.com/Microsoft/MS-DOS)
+ * [DOSBox](https://www.dosbox.com/)
+ * [FreeDOS](http://www.freedos.org/)
+ * [MS-DOS 1.25 & 2.0](https://github.com/Microsoft/MS-DOS)
  
 Tools: 
 
  * [FreeDOS](http://www.freedos.org/)
- * [FreeDOS NANSI.SYS Reference](http://help.fdos.org/en/hhstndrd/base/nansi.htm) - Make your prompt different colors in FreeDOS.
  * [FreeDOS CONFIG.SYS Reference](http://www.freedos.org/kernel/config.txt)
- * [Ansi Color Guide](https://kb.iu.edu/d/aamm)
+ * [FreeDOS NANSI.SYS Reference](http://help.fdos.org/en/hhstndrd/base/nansi.htm)
+ * [Ansi Color Guide](https://kb.iu.edu/d/aamm) - Make your prompt different colors (requires [NANSI.SYS](http://help.fdos.org/en/hhstndrd/base/nansi.htm) in FreeDOS).
  * [VirtualBox](https://www.virtualbox.org/) - Free OS virtualization platform.
  * [QEMU](https://www.qemu.org/) - Another free OS virtualization platform.
  * [Win World](https://winworldpc.com/home) - Old OS (Windows 3.1, 9x, Dos, and more) installation files and old software (Turbo Pascal, WordStar, etc)
@@ -135,22 +188,22 @@ Tools:
 
 Javascript x86 Emulation:
 
-* [js-dos](https://js-dos.com/) - x86 javascript emulator tailored for converting and running dos games in browser.
-* [em-dosbox](https://github.com/dreamlayers/em-dosbox)
-* [v86](https://github.com/copy/v86)
-* [asm.js](http://asmjs.org/)
-* [WebAssembly](https://webassembly.org/)
-* [emscripten](https://github.com/kripken/emscripten) - LLVM (C/C++) to JS compiler
+ * [v86](https://github.com/copy/v86)
+ * [js-dos](https://js-dos.com/) - x86 javascript emulator tailored for converting and running dos games in browser.
+ * [em-dosbox](https://github.com/dreamlayers/em-dosbox)
+ * [asm.js](http://asmjs.org/)
+ * [WebAssembly](https://webassembly.org/)
+ * [emscripten](https://github.com/kripken/emscripten) - LLVM (C/C++) to JS compiler
 
 Further Resources:
 
-* [v86 image creation tips for QEMU](https://github.com/copy/v86/issues/128)
-* [Gentle Introduction to FreeDOS](https://opensource.com/article/18/4/gentle-introduction-freedos)
-* [FreeDOS on QEMU Installation Guide](http://how-to.wikia.com/wiki/How_to_install_FreeDOS_in_QEMU)
-* [Another FreeDOS QEMU Installation Guide](https://opensource.com/article/17/10/run-dos-applications-linux)
-* [Booting QEMU from a Floppy Image](https://stackoverflow.com/questions/19961095/os-development-booting-from-floppy-drive-using-qemu)
-* [Creating A Minimal Boot Sector For v86](https://blog.benjdoherty.com/2017/08/07/Writing-a-minimal-boot-sector-for-the-v86-emulator/)
-* [archive.org's free dos game library](https://archive.org/details/softwarelibrary_msdos_games?) - powered by em-dosbox
+ * [v86 image creation tips for QEMU](https://github.com/copy/v86/issues/128)
+ * [Gentle Introduction to FreeDOS](https://opensource.com/article/18/4/gentle-introduction-freedos)
+ * [FreeDOS on QEMU Installation Guide](http://how-to.wikia.com/wiki/How_to_install_FreeDOS_in_QEMU)
+ * [Another FreeDOS QEMU Installation Guide](https://opensource.com/article/17/10/run-dos-applications-linux)
+ * [Booting QEMU from a Floppy Image](https://stackoverflow.com/questions/19961095/os-development-booting-from-floppy-drive-using-qemu)
+ * [Creating A Minimal Boot Sector For v86](https://blog.benjdoherty.com/2017/08/07/Writing-a-minimal-boot-sector-for-the-v86-emulator/)
+ * [archive.org's free dos game library](https://archive.org/details/softwarelibrary_msdos_games?) - powered by em-dosbox
 
  
 # Trivia
@@ -232,20 +285,24 @@ These images were created while working on a [book](http://www.happyacro.com) ab
 
 # Credit
 
- * Fabian Hemmer's [v86](https://github.com/copy/v86) and his original [FreeDOS diskette image](https://github.com/copy/images/blob/master/freedos722.img) that I used to seed this project's images. 
- * Thanks to [David Anderson](https://apple.stackexchange.com/users/107222/david-anderson) for helping me understand the difference between MBR and VBR, and providing example code to extract the boot sector from one image and stick it into another in [this Stack Overflow thread](https://apple.stackexchange.com/questions/338718/creating-bootable-freedos-dos-floppy-diskette-img-file-for-v86-on-osx).
- * [MS Dos 5.0 Boot Sector Reference](https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm)
- * [FreeDOS](http://www.freedos.org/)
- * The [Hex Fiend](https://ridiculousfish.com/hexfiend/) hex editor for MacOS was used to verify and troubleshoot this project's boot sectors.
+  * Fabian Hemmer's [v86](https://github.com/copy/v86) and his original [FreeDOS diskette image](https://github.com/copy/images/blob/master/freedos722.img) that I used to seed this project's images. 
+  * Thanks to [David Anderson](https://apple.stackexchange.com/users/107222/david-anderson) for helping me understand the difference between MBR and VBR, and providing example code to extract the boot sector from one image and stick it into another in [this Stack Overflow thread](https://apple.stackexchange.com/questions/338718/creating-bootable-freedos-dos-floppy-diskette-img-file-for-v86-on-osx).
+  * [MS Dos 5.0 Boot Sector Reference](https://thestarman.pcministry.com/asm/mbr/DOS50FDB.htm)
+  * [FreeDOS](http://www.freedos.org/)
+  * The [Hex Fiend](https://ridiculousfish.com/hexfiend/) hex editor for MacOS was used to verify and troubleshoot this project's boot sectors.
 
 
 # License
 
+All V86 assets, including the copied [FreeDOS image file](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/lib/v86.freedos.boot.disk.img), the [vgabios.img](https://github.com/codercowboy/freedosbootdisks/blob/master/sample/vgabios.bin), the [seabios.img](https://github.com/codercowboy/freedosbootdisks/blob/master/sample/seabios.bin), and the compiled [libv86.js](https://github.com/codercowboy/freedosbootdisks/blob/master/sample/libv86.js) file in this repository are copyrighted by Fabian Hemmer or other respective owners. License information for those assets is available on the [v86 licensing terms page](https://github.com/copy/v86). 
+
+All FreeDOS assets, including the [KERNEL.SYS](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/lib/boot_disk_contents/KERNEL.SYS) and [COMMAND.COM](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/lib/boot_disk_contents/COMMAND.COM) FreeDOS files are licensed as described [here](http://wiki.freedos.org/wiki/index.php/Open_source_software).
+
 All scripts are licensed with the [Apache license](http://en.wikipedia.org/wiki/Apache_license), which is a great license because, essentially it:
 
-* a) covers liability - my code should work, but I'm not liable if you do something stupid with it
-* b) allows you to copy, fork, and use the code, even commercially
-* c) is [non-viral](http://en.wikipedia.org/wiki/Viral_license), that is, your derivative code doesn't *have to be* open source to use it
+ * a) covers liability - my code should work, but I'm not liable if you do something stupid with it
+ * b) allows you to copy, fork, and use the code, even commercially
+ * c) is [non-viral](http://en.wikipedia.org/wiki/Viral_license), that is, your derivative code doesn't *have to be* open source to use it
 
 Other great licensing options for your own code: [BSD License](https://en.wikipedia.org/wiki/BSD_licenses), [MIT License](https://en.wikipedia.org/wiki/MIT_License), or [Creative Commons](https://en.wikipedia.org/wiki/Creative_Commons_license).
 
@@ -255,9 +312,9 @@ Copyright (c) 2018, Coder Cowboy, LLC. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-* 1. Redistributions of source code must retain the above copyright notice, this
+ * 1. Redistributions of source code must retain the above copyright notice, this
 list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright notice,
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
 this list of conditions and the following disclaimer in the documentation
 and/or other materials provided with the distribution.
   
