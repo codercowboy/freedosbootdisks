@@ -106,7 +106,7 @@ A few notes on the sample shown above:
 
   * The above example will host a [web server](https://en.wikipedia.org/wiki/Web_server) on your machine on port 8070. If you start the webserver in the [sample](https://github.com/codercowboy/freedosbootdisks/tree/master/sample) folder of this project, the url to fetch the sample.html will be:
 
-     http://localhost:8080/sample.html
+     http://localhost:8070/sample.html
 
   * Other popular [web server](https://en.wikipedia.org/wiki/Web_server) options to consider are [Apache](https://httpd.apache.org/), [NGINX](https://www.nginx.com/), a [LAMP](https://en.wikipedia.org/wiki/LAMP_(software_bundle)) stack (which includes apache as the webserver portion of the stack), [Tomcat](http://tomcat.apache.org/), or [Geronimo](http://geronimo.apache.org/). More webserver options are listed [here](https://en.wikipedia.org/wiki/Comparison_of_web_server_software). 
   * The seabios.bin and vgabios.bin images came from the v86 github project [here](https://github.com/copy/v86/tree/master/bios).
