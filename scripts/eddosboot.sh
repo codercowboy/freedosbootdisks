@@ -12,6 +12,10 @@
 #
 # UPDATES:
 # 
+# 2018/10/19
+# - Remove MacOS dot files from created disk
+# - Add support for 180K, 360K, 640K, 1200K disk sizes
+# 
 # 2018/10/15
 # - Initial version
 #
@@ -61,7 +65,7 @@ print_usage() {
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [FILE] - creates a 1.4MB FreeDOS boot disk"
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SECTOR SIZE] [SECTOR COUNT] [FILE] - creates boot disk w/ given sector specifications"
 	echo "  CREATE BOOT_DISK [VOLUME LABEL] [SIZE] [FILE] - creates a boot disk with specified file size"
-	echo "      Supported boot disk file sizes: 160K 320K 720K 1.4MB"
+	echo "      Supported boot disk file sizes: 1.4MB, 1200K, 720K, 640K, 360K, 320K, 180K, and 160K."
 	echo "  CREATE_ALL_BOOT_DISKS - create all supported boot disks in build/bootdisks folder."
 	echo "  CREATE_ALL_BOOT_DISKS [VOLUME LABEL] - create all supported boot disks in build/bootdisks folder with specified Volume Label."
 	echo ""
@@ -78,7 +82,7 @@ print_usage() {
 	echo "  CREATE BOOT_SECTOR [FILE] - creates a 1.4MB FreeDOS .img boot sector."
 	echo "  CREATE BOOT_SECTOR [SECTOR SIZE] [SECTOR COUNT] [FILE] - create boot sector with given sector specifications"
 	echo "  CREATE BOOT_SECTOR [SIZE] [FILE] - create boot sector with specified standard diskette size"
-	echo "      Supported boot disk sizes: 160K 320K 720K 1.4MB"
+	echo "      Supported boot disk sizes: 1.4MB, 1200K, 720K, 640K, 360K, 320K, 180K, and 160K."
 	echo "  CREATE_ALL_BOOT_SECTORS - create all supported boot sectors in build/bootsectors folder."
 	echo ""
 	echo "---"
@@ -260,15 +264,24 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 
 	if [ "1.4MB" = "${FILE_SIZE}" ]; then
 		FORMAT=1440
+	elif [ "1200K" = "${FILE_SIZE}" ]; then
+		FORMAT=1200	
 	elif [ "720K" = "${FILE_SIZE}" ]; then
 		FORMAT=720
+	elif [ "640K" = "${FILE_SIZE}" ]; then
+		FORMAT=640
+	elif [ "360K" = "${FILE_SIZE}" ]; then
+		FORMAT=360
 	elif [ "320K" = "${FILE_SIZE}" ]; then
 		FORMAT=320
+	elif [ "180K" = "${FILE_SIZE}" ]; then
+		FORMAT=180
 	elif [ "160K" = "${FILE_SIZE}" ]; then
 		FORMAT=160
 	else
-		print_usage "Unsupported 'CREATE' mode file size: '${FILE_SIZE}', supported sizes are: 1.4MB, 720K, 320K, and 160K"
+		print_usage "Unsupported 'CREATE' mode file size: '${FILE_SIZE}', supported sizes are: 1.4MB, 1200K, 720K, 640K, 360K, 320K, 180K, and 160K."
 	fi
+
 	SECTOR_COUNT=$((FORMAT * 2))	
 
 	# copy the source v86 boot sector to a tmp file
@@ -298,6 +311,9 @@ elif [ "CREATE" = "${OPERATION}" ]; then
 		echo "Copying boot disk contents from ${SCRIPT_HOME}/lib/boot_disk_contents"
 		hdiutil attach "${FILE}"
 		cp -r "${SCRIPT_HOME}/lib/boot_disk_contents/" "/Volumes/${VOLUME_LABEL}"
+		# remove dot files
+		find "/Volumes/${VOLUME_LABEL}" -name "._*" -delete
+		rm -Rf "/Volumes/${VOLUME_LABEL}/.fseventsd/"
 		hdiutil eject "/Volumes/${VOLUME_LABEL}/"
 
 		echo "Finished creating boot diskette image: ${FILE}"
@@ -339,13 +355,29 @@ elif [ "CREATE_ALL_BOOT_DISKS" = "${OPERATION}" ]; then
 	echo "Creating 1.4MB FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 1.4MB "${FILE}"
 
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.1200K.img"
+	echo "Creating 1200K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 1200K "${FILE}"
+
 	FILE="${BUILD_FOLDER}/freedos.boot.disk.720K.img"
 	echo "Creating 720K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 720K "${FILE}"
 
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.640K.img"
+	echo "Creating 640K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 640K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.360K.img"
+	echo "Creating 360K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 360K "${FILE}"
+
 	FILE="${BUILD_FOLDER}/freedos.boot.disk.320K.img"
 	echo "Creating 320K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 320K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.disk.180K.img"
+	echo "Creating 180K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_DISK "${VOLUME_LABEL}" 180K "${FILE}"
 
 	FILE="${BUILD_FOLDER}/freedos.boot.disk.160K.img"
 	echo "Creating 160K FreeDOS boot disk with volume label '${VOLUME_LABEL}': ${FILE}"
@@ -355,23 +387,41 @@ elif [ "CREATE_ALL_BOOT_DISKS" = "${OPERATION}" ]; then
 elif [ "CREATE_ALL_BOOT_SECTORS" = "${OPERATION}" ]; then
 	BUILD_FOLDER="${BUILD_HOME}/bootsectors"
 	mkdir -p "${BUILD_FOLDER}"
+
 	echo "Creating standard FreeDOS boot sectors in folder: ${BUILD_FOLDER}"
 
 	FILE="${BUILD_FOLDER}/freedos.boot.sector.1.4MB.img"
-	echo "Creating 1.4MB FreeDOS boot sector: ${FILE}"
+	echo "Creating 1.4M FreeDOS boot sector: ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 1.4MB "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.1200K.img"
+	echo "Creating 1200K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 1200K "${FILE}"
 
 	FILE="${BUILD_FOLDER}/freedos.boot.sector.720K.img"
 	echo "Creating 720K FreeDOS boot sector: ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 720K "${FILE}"
 
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.640K.img"
+	echo "Creating 640K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 640K "${FILE}"
+
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.360K.img"
+	echo "Creating 360K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 360K "${FILE}"
+
 	FILE="${BUILD_FOLDER}/freedos.boot.sector.320K.img"
 	echo "Creating 320K FreeDOS boot sector: ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 320K "${FILE}"
 
+	FILE="${BUILD_FOLDER}/freedos.boot.sector.180K.img"
+	echo "Creating 180K FreeDOS boot sector: ${FILE}"
+	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 180K "${FILE}"
+
 	FILE="${BUILD_FOLDER}/freedos.boot.sector.160K.img"
 	echo "Creating 160K FreeDOS boot sector: ${FILE}"
 	"${SCRIPT_HOME}/eddosboot.sh" CREATE BOOT_SECTOR 160K "${FILE}"
+
 	echo "Finished creating standard FreeDOS boot sectors."
 else
 	print_usage "Unsupported operation: ${OPERATION}"

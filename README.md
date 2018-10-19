@@ -16,7 +16,9 @@ FreeDOS Boot Diskette image files are available in the [bootdisks folder](https:
 
 The provided boot disk images are minimal. They only contain the following: [KERNEL.SYS](http://help.fdos.org/en/hhstndrd/base/kernel.htm), [CONFIG.SYS](http://help.fdos.org/en/hhstndrd/cnfigsys/index.htm), [AUTOEXEC.BAT](http://help.fdos.org/en/hhstndrd/batch/autoexec.htm), [COMMAND.COM](http://help.fdos.org/en/hhstndrd/base/command.htm), and a small [README.TXT](https://github.com/codercowboy/freedosbootdisks/blob/master/scripts/lib/boot_disk_contents/README.TXT) file with a link to this project. 
 
-The boot disk images come in differing sizes (160K, 320K, 720K, 1.4M) in case you want to fill the image with a few more programs. 
+The boot disk images come in differing sizes (160K, 180K, 320K, 360K, 640K, 720K, 1200K, 1.4M) in case you need to fill the image with a few more programs or have a strange expected target disk size. 
+
+**Note:** This project generates a 640K boot disk image. v86 does not support the 640K size.
 
 The provided images boot well in v86. I have not taken the time to see if they boot well on other virtualized platforms or on real vintage hardware. 
 
@@ -256,6 +258,8 @@ Early [floppy disks came in sizes](https://en.wikipedia.org/wiki/Floppy_disk#Siz
     	2880 : { type: 5, tracks: 80, sectors: 36, heads: 2 },
     };
 
+**Note:** This project generates a 640K boot disk image. v86 does not support the 640K size.
+
 More details on floppy disk formats are listed on [Wikipedia's List Of Floppy Disk Formats](https://en.wikipedia.org/wiki/List_of_floppy_disk_formats).
 
 A floppy diskette does not have a MBR, but instead has a [Volume Boot Record](https://en.wikipedia.org/wiki/Volume_boot_record) (VBR). I'm a little confused on the difference between a MBR and a VBR, but my basic understanding is that a MBR is used on devices like hard disks that support partitions or multiple partitions, and a VBR is used on storage mediums without partitions (such as floppy diskettes). 
@@ -296,12 +300,13 @@ If you'd like to contribute to the project, feel free to send me PRs, I'll credi
 Some suggested future improvements:
 
  * More boot sector display/edit property support for properties such as the boot sector volume label, head count, cylinder count, etc.
- * Make the scripts cross-portable, rather than MacOS specific
- * Improve the baseline CONFIG.SYS file
+ * Make the scripts cross-portable, rather than MacOS specific.
+ * Improve the baseline CONFIG.SYS file.
  * Documentation improvements.
  * Productize hexlib.sh to be a nice standalone script rather than just bash functions.
  * Add more supported boot disk image sizes (all possible variations are listed in 'man newfs_msdos'). In particular, I could use help figuring out the newfs_msdos incantation for a 2.88MB image.
  * Add error handling when a disk is being created and the user's boot_disk_contents files overflow the disk size.
+ * Add more error checking in general, checking for exit codes from various commands.
 
 # License
 
